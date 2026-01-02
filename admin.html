@@ -183,10 +183,13 @@
 </div>
 
 <script type="module">
-    // 1. استيراد المكتبات اللازمة
+    // 1. 
+    // استيراد المكتبات اللازمة
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, updateDoc, doc, increment, serverTimestamp, onSnapshot, query, orderBy, where } 
     from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
     // 2. إعدادات الفايربيس
@@ -205,18 +208,26 @@
     const auth = getAuth(app);
 
     // 4. كود الحماية والتحقق من تسجيل الدخول
-    onAuthStateChanged(auth, (user) => {
+    // 4. كود الحماية والتحقق من تسجيل الدخول المعدل
+    onAuthStateChanged(auth, async (user) => {
         if (!user) {
-            // إذا لم يكن هناك مستخدم مسجل، توجه لصفحة تسجيل الدخول
-            window.location.href = "admin-login.html";
-        } else {
-            // التحقق من أن الايميل هو ايميل الادمن فقط
-            if(user.email !== "admin@tajer.com") { 
-                alert("ليس لديك صلاحية الوصول لهذه اللوحة");
-                signOut(auth);
-            }
+            window.location.replace("admin-login.html");
+            return;
         }
+
+        // الطريقة الأضمن: التحقق من الإيميل مباشرة إذا كان الحساب خاص بالأدمن فقط
+        const ADMIN_EMAIL = "admin33@tajer44.com"; // الإيميل الذي ظهر في صورتك
+        
+        if (user.email !== ADMIN_EMAIL) {
+            alert("هذا الحساب ليس له صلاحيات إدارية");
+            await signOut(auth);
+            window.location.replace("admin-login.html");
+            return;
+        }
+
+        console.log("تم السماح بالدخول للأدمن:", user.email);
     });
+
 
     /* ===========================
        1. إدارة التبويبات (UI)
