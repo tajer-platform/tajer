@@ -3,60 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة تاجر | الاستثمار الزراعي الحقيقي</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <title>منصة تاجر - الاستثمار الزراعي</title>
+    <link rel="stylesheet" href="style.css?v=2.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
 
     <header class="top-bar">
-        <div class="weather">
-            <i class="fas fa-cloud-sun"></i>
-            <span>دمشق: 22°C</span>
+        <div class="logo">
+            <i class="fas fa-seedling"></i>
+            <span>تـاجر <span>الزراعي</span></span>
         </div>
-        <div class="logo">تاجِـر</div>
-        <div class="wallet-pill">
-            <span id="wallet-display">0</span>
-            <small>ل.س</small>
+        <div class="user-stats">
+            <div class="balance-box">
+                <small>الرصيد المتاح</small>
+                <div class="val"><span id="wallet-display">0</span> <small>ل.س</small></div>
+            </div>
+            <img src="https://via.placeholder.com/40" alt="Profile" class="user-img">
         </div>
     </header>
 
-    <main id="app">
-        <section id="farm-section" class="page active">
-            <div class="section-header">مزرعتي الخاصة 🚜</div>
-            <div id="my-assets" class="grid">
-                <div class="empty-msg">لا تملك أصولاً بعد.. ابدأ من السوق</div>
+    <div class="action-buttons">
+        <button class="btn deposit"><i class="fas fa-plus-circle"></i> إيداع</button>
+        <button class="btn withdraw"><i class="fas fa-hand-holding-usd"></i> سحب</button>
+        <button class="btn settings-top" onclick="tab('settings', this)"><i class="fas fa-cog"></i></button>
+    </div>
+
+    <main id="main-content">
+        
+        <section id="home" class="page active">
+            <div class="dashboard-summary">
+                <div class="stat-card">
+                    <i class="fas fa-wallet"></i>
+                    <small>إجمالي المحفظة</small>
+                    <h3 id="total-wallet">0</h3>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-chart-line"></i>
+                    <small>أرباح اليوم</small>
+                    <h3 class="profit">+0</h3>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-cow"></i>
+                    <small>الأصول المملوكة</small>
+                    <h3 id="assets-count">0</h3>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-clock"></i>
+                    <small>آخر توزيع</small>
+                    <h3>منذ قليل</h3>
+                </div>
             </div>
             
-            <div class="section-header">سجل النشاطات 📝</div>
-            <div class="log-box" id="activity-log">
-                <div class="log-item">مرحباً بك في مجتمع التجار..</div>
+            <div class="transparency-mini">
+                <h4><i class="fas fa-shield-alt"></i> تقرير الشفافية المباشر</h4>
+                <p>إجمالي الثروة الحيوانية في مزارعنا الآن: 1,240 رأس</p>
             </div>
         </section>
 
-        <section id="market-section" class="page">
-            <div class="section-header">بورصة الأصول 📉</div>
-            <div id="market-grid" class="grid"></div>
+        <section id="assets" class="page">
+            <div class="section-header">
+                <h2>أصولي الاستثمارية</h2>
+                <button class="re-invest">إعادة استثمار الأرباح</button>
+            </div>
+            <div id="my-assets-list" class="assets-grid">
+                </div>
         </section>
 
-        <section id="chat-section" class="page">
-            <div class="chat-wrapper">
-                <div id="chat-box" class="chat-box"></div>
+        <section id="market" class="page">
+            <div class="market-tabs">
+                <button class="m-tab active">حيوانات</button>
+                <button class="m-tab">منتجات</button>
+                <button class="m-tab">استثمارات</button>
+            </div>
+            <div id="market-grid" class="market-grid">
+                </div>
+        </section>
+
+        <section id="community" class="page">
+            <div class="chat-container">
+                <div class="chat-header">غرفة المستثمرين العامة</div>
+                <div id="chat-box" class="chat-messages"></div>
                 <div class="chat-input">
-                    <input type="text" id="chat-in" placeholder="اكتب للجميع...">
+                    <input type="text" id="chat-in" placeholder="اكتب رسالتك...">
                     <button onclick="sendMsg()"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
         </section>
+
+        <section id="wallet" class="page">
+            <div class="wallet-actions">
+                <div class="card deposit-card">
+                    <h3>إيداع أموال</h3>
+                    <p>عبر الهرم، شكرجي، أو بنك بيمو</p>
+                    <button class="btn">طلب عنوان الإيداع</button>
+                </div>
+                <div class="card history-card">
+                    <h3>سجل المعاملات</h3>
+                    <div id="transaction-history">
+                        <div class="history-item">لا يوجد عمليات سابقة</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="settings" class="page">
+            <div class="profile-settings">
+                <div class="setting-item">تنبيهات الأرباح <input type="checkbox" checked></div>
+                <div class="setting-item">توثيق الحساب (KYC) <span class="status-badge">قيد التطوير</span></div>
+                <button class="btn-logout">تسجيل الخروج</button>
+            </div>
+        </section>
+
     </main>
 
     <nav class="bottom-nav">
-        <button class="nav-item active" onclick="tab('farm-section', this)"><i class="fas fa-tractor"></i><span>مزرعتي</span></button>
-        <button class="nav-item" onclick="tab('market-section', this)"><i class="fas fa-store"></i><span>السوق</span></button>
-        <button class="nav-item" onclick="tab('chat-section', this)"><i class="fas fa-users"></i><span>المجتمع</span></button>
+        <div class="nav-item active" onclick="tab('home', this)">
+            <i class="fas fa-home"></i>
+            <span>الرئيسية</span>
+        </div>
+        <div class="nav-item" onclick="tab('assets', this)">
+            <i class="fas fa-cow"></i>
+            <span>أصولي</span>
+        </div>
+        <div class="nav-item" onclick="tab('market', this)">
+            <i class="fas fa-store"></i>
+            <span>السوق</span>
+        </div>
+        <div class="nav-item" onclick="tab('community', this)">
+            <i class="fas fa-users"></i>
+            <span>المجتمع</span>
+        </div>
+        <div class="nav-item" onclick="tab('wallet', this)">
+            <i class="fas fa-wallet"></i>
+            <span>المحفظة</span>
+        </div>
     </nav>
 
+    <script type="importmap">
+        {
+          "imports": {
+            "firebase/app": "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js",
+            "firebase/firestore": "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"
+          }
+        }
+    </script>
     <script type="module" src="script.js"></script>
 </body>
 </html>
