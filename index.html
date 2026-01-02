@@ -1,16 +1,28 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>تاجر الزراعي - استثمر بذكاء</title>
-<link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تاجر الزراعي - استثمر بذكاء</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* إضافة ستايل سريع لنافذة الدعم الفني لتبدو احترافية */
+        .admin-chat-badge {
+            background: #2563eb;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            margin-right: 5px;
+        }
+        .msg-admin { background: #dbeafe !important; align-self: flex-start; color: #1e40af !important; border-radius: 15px 15px 15px 0 !important; }
+        .msg-user { background: #2563eb !important; align-self: flex-end; color: white !important; border-radius: 15px 15px 0 15px !important; }
+        .chat-messages { display: flex; flex-direction: column; gap: 10px; padding: 10px; }
+    </style>
 </head>
 <body>
 
-<!-- ===================================== -->
-<!-- TOP BAR -->
 <header class="top-bar">
     <div class="logo">
         <i class="fas fa-seedling"></i>
@@ -21,23 +33,18 @@
             <small>الرصيد المتاح</small>
             <div class="val"><span id="wallet-display">0</span> ل.س</div>
         </div>
-        <img src="https://via.placeholder.com/40" alt="Profile" class="user-img">
+        <img src="https://via.placeholder.com/40" alt="Profile" id="user-avatar" class="user-img">
     </div>
 </header>
 
-<!-- ===================================== -->
-<!-- ACTION BUTTONS -->
 <div class="action-buttons">
-    <button class="btn deposit"><i class="fas fa-plus-circle"></i> إيداع</button>
-    <button class="btn withdraw"><i class="fas fa-hand-holding-usd"></i> سحب</button>
+    <button class="btn deposit" onclick="tab('wallet', this)"><i class="fas fa-plus-circle"></i> إيداع</button>
+    <button class="btn withdraw" onclick="tab('wallet', this)"><i class="fas fa-hand-holding-usd"></i> سحب</button>
     <button class="btn settings-top" onclick="tab('settings', this)"><i class="fas fa-cog"></i></button>
 </div>
 
-<!-- ===================================== -->
-<!-- MAIN CONTENT -->
 <main id="main-content">
 
-    <!-- DASHBOARD / HOME -->
     <section id="home" class="page active">
         <div class="dashboard-summary">
             <div class="stat-card">
@@ -48,7 +55,7 @@
             <div class="stat-card">
                 <i class="fas fa-chart-line"></i>
                 <small>أرباح اليوم</small>
-                <h3 class="profit">+0</h3>
+                <h3 class="profit" id="today-profit">+0</h3>
             </div>
             <div class="stat-card">
                 <i class="fas fa-cow"></i>
@@ -58,81 +65,82 @@
             <div class="stat-card">
                 <i class="fas fa-clock"></i>
                 <small>آخر توزيع</small>
-                <h3>منذ قليل</h3>
+                <h3 id="last-dist">جاري التحديث...</h3>
             </div>
         </div>
     </section>
 
-    <!-- ASSETS -->
     <section id="assets" class="page">
         <div class="section-header">
             <h2>أصولي الاستثمارية</h2>
-            <button class="re-invest">إعادة استثمار الأرباح</button>
         </div>
         <div id="my-assets-list" class="assets-grid">
-            <div class="card">لا يوجد أصول بعد</div>
+            <div class="loading">جاري تحميل أصولك...</div>
         </div>
     </section>
 
-    <!-- MARKET -->
     <section id="market" class="page">
         <div class="market-tabs">
-            <button class="m-tab active" onclick="filterMarket('animals')">حيوانات</button>
-            <button class="m-tab" onclick="filterMarket('products')">منتجات</button>
-            <button class="m-tab" onclick="filterMarket('investments')">استثمارات</button>
+            <button class="m-tab active" onclick="filterMarket('all')">الكل</button>
+            <button class="m-tab" onclick="filterMarket('animals')">حيوانات</button>
+            <button class="m-tab" onclick="filterMarket('investments')">مشاريع</button>
         </div>
         <div id="market-grid" class="market-grid">
-            <div class="card">السوق فارغ حالياً</div>
-        </div>
+            </div>
     </section>
 
-    <!-- COMMUNITY CHAT -->
     <section id="community" class="page">
         <div class="chat-toggle">
-            <button id="btn-global" class="active" onclick="switchChat('global')">المحادثة العامة</button>
-            <button id="btn-private" onclick="switchChat('private')">المحادثات الخاصة</button>
+            <button id="btn-global" class="active" onclick="switchChat('global')">المجتمع</button>
+            <button id="btn-private" onclick="switchChat('support')">الدعم الفني <span class="admin-chat-badge">LIVE</span></button>
         </div>
         <div class="chat-container">
             <div id="chat-box" class="chat-messages"></div>
             <div class="chat-input-area">
-                <input type="text" id="chat-in" placeholder="اكتب رسالتك هنا...">
-                <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+                <input type="text" id="chat-in" placeholder="اكتب استفسارك هنا...">
+                <button id="send-msg-btn"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
     </section>
 
-    <!-- WALLET -->
     <section id="wallet" class="page">
         <div class="wallet-actions">
             <div class="card deposit-card">
-                <h3>إيداع أموال</h3>
-                <p>اختر طريقة الإيداع المفضلة لديك</p>
-                <button class="btn deposit">طلب عنوان الإيداع</button>
-            </div>
-            <div class="card history-card">
-                <h3>سجل المعاملات</h3>
-                <div id="transaction-history">
-                    <div class="history-item">لا يوجد عمليات سابقة</div>
+                <h3>إيداع وسحب</h3>
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <input type="number" id="amount-input" placeholder="أدخل المبلغ..." style="flex:1; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
                 </div>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn deposit" style="flex:1" onclick="requestAction('deposit')">إيداع</button>
+                    <button class="btn withdraw" style="flex:1; background: #64748b" onclick="requestAction('withdraw')">سحب</button>
+                </div>
+            </div>
+            
+            <div class="card history-card">
+                <h3>سجل العمليات</h3>
+                <div id="transaction-history">
+                    </div>
             </div>
         </div>
     </section>
 
-    <!-- SETTINGS -->
     <section id="settings" class="page">
         <div class="profile-settings">
+            <div class="setting-item" style="display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #eee;">
+                <span>الاسم:</span>
+                <strong id="user-name-display">...</strong>
+            </div>
             <div class="setting-item">تنبيهات الأرباح <input type="checkbox" checked></div>
-            <div class="setting-item">توثيق الحساب (KYC) <span class="status-badge">قيد التطوير</span></div>
-            <button class="btn-logout" style="background:#ef4444; color:white; border:none; padding:15px; width:100%; border-radius:14px; margin-top:20px;">تسجيل الخروج</button>
+            <button id="logout-btn" class="btn-logout" style="background:#ef4444; color:white; border:none; padding:15px; width:100%; border-radius:14px; margin-top:20px; cursor:pointer;">
+                <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+            </button>
         </div>
     </section>
 
 </main>
 
-<!-- ===================================== -->
-<!-- BOTTOM NAVIGATION -->
 <nav class="bottom-nav">
-    <div class="nav-item active" onclick="tab('home', this)">
+    <div class="nav-item active" id="nav-home" onclick="tab('home', this)">
         <i class="fas fa-home"></i>
         <span>الرئيسية</span>
     </div>
@@ -145,8 +153,8 @@
         <span>السوق</span>
     </div>
     <div class="nav-item" onclick="tab('community', this)">
-        <i class="fas fa-users"></i>
-        <span>المجتمع</span>
+        <i class="fas fa-comment-dots"></i>
+        <span>الدعم</span>
     </div>
     <div class="nav-item" onclick="tab('wallet', this)">
         <i class="fas fa-wallet"></i>
@@ -156,6 +164,16 @@
 
 <script type="module" src="script.js"></script>
 
+<script>
+    // دالة التبديل بين الصفحات (Tabs)
+    function tab(pageId, el) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        if(el.classList.contains('nav-item')) el.classList.add('active');
+    }
+</script>
 
 </body>
 </html>
