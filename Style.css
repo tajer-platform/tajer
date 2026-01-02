@@ -1,0 +1,33 @@
+:root { --main: #1b5e20; --gold: #ffc107; --bg: #f0f2f5; }
+* { box-sizing: border-box; font-family: 'Cairo', sans-serif; }
+body { background: var(--bg); margin: 0; padding-bottom: 70px; direction: rtl; }
+
+.top-bar { background: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+.logo { font-weight: bold; color: var(--main); font-size: 1.4rem; }
+.wallet-pill { background: #e8f5e9; padding: 5px 12px; border-radius: 20px; color: var(--main); font-weight: bold; }
+
+.page { display: none; padding: 15px; animation: slide 0.3s ease; }
+.page.active { display: block; }
+@keyframes slide { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.section-header { font-weight: bold; margin: 15px 0; color: #444; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.card { background: white; border-radius: 15px; padding: 15px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.card i { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+.price { color: var(--main); font-weight: bold; display: block; margin: 8px 0; }
+.buy-btn { background: var(--main); color: white; border: none; padding: 8px; width: 100%; border-radius: 8px; font-weight: bold; }
+
+.log-box { background: white; border-radius: 15px; padding: 10px; font-size: 0.8rem; height: 150px; overflow-y: auto; }
+.log-item { border-bottom: 1px solid #eee; padding: 8px 0; display: flex; justify-content: space-between; }
+
+.chat-wrapper { display: flex; flex-direction: column; height: 70vh; }
+.chat-box { flex: 1; background: #ddd; border-radius: 15px; padding: 15px; overflow-y: auto; margin-bottom: 10px; }
+.chat-input { display: flex; gap: 8px; }
+.chat-input input { flex: 1; border-radius: 20px; border: 1px solid #ccc; padding: 10px; }
+.chat-input button { background: var(--gold); border: none; width: 45px; border-radius: 50%; color: white; }
+
+.bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; padding: 10px 0; border-top: 1px solid #eee; }
+.nav-item { flex: 1; border: none; background: none; color: #888; display: flex; flex-direction: column; align-items: center; font-size: 0.7rem; }
+.nav-item.active { color: var(--main); }
+.nav-item i { font-size: 1.2rem; }

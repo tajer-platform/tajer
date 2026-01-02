@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة تاجر | الاستثمار الزراعي الحقيقي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <header class="top-bar">
+        <div class="weather">
+            <i class="fas fa-cloud-sun"></i>
+            <span>دمشق: 22°C</span>
+        </div>
+        <div class="logo">تاجِـر</div>
+        <div class="wallet-pill">
+            <span id="wallet-display">0</span>
+            <small>ل.س</small>
+        </div>
+    </header>
+
+    <main id="app">
+        <section id="farm-section" class="page active">
+            <div class="section-header">مزرعتي الخاصة 🚜</div>
+            <div id="my-assets" class="grid">
+                <div class="empty-msg">لا تملك أصولاً بعد.. ابدأ من السوق</div>
+            </div>
+            
+            <div class="section-header">سجل النشاطات 📝</div>
+            <div class="log-box" id="activity-log">
+                <div class="log-item">مرحباً بك في مجتمع التجار..</div>
+            </div>
+        </section>
+
+        <section id="market-section" class="page">
+            <div class="section-header">بورصة الأصول 📉</div>
+            <div id="market-grid" class="grid"></div>
+        </section>
+
+        <section id="chat-section" class="page">
+            <div class="chat-wrapper">
+                <div id="chat-box" class="chat-box"></div>
+                <div class="chat-input">
+                    <input type="text" id="chat-in" placeholder="اكتب للجميع...">
+                    <button onclick="sendMsg()"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <nav class="bottom-nav">
+        <button class="nav-item active" onclick="tab('farm-section', this)"><i class="fas fa-tractor"></i><span>مزرعتي</span></button>
+        <button class="nav-item" onclick="tab('market-section', this)"><i class="fas fa-store"></i><span>السوق</span></button>
+        <button class="nav-item" onclick="tab('chat-section', this)"><i class="fas fa-users"></i><span>المجتمع</span></button>
+    </nav>
+
+    <script src="script.js"></script>
+</body>
+</html>
