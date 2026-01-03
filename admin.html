@@ -5,143 +5,51 @@
     <title>اللوحة الرئيسية | إدارـة تـاجـر</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        :root {
-            --bg: #f8fafc; --sidebar: #1e293b; --primary: #3b82f6; --primary-hover: #2563eb;
-            --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --info: #06b6d4; --purple: #8b5cf6; --text: #334155;
-            --radius: 12px; --shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-        }
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="control.css">
 
-        body { margin: 0; font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); display: flex; height: 100vh; overflow: hidden; color: var(--text); }
-        
-        /* Sidebar */
-        .sidebar { width: 260px; background: var(--sidebar); color: white; display: flex; flex-direction: column; flex-shrink: 0; transition: 0.3s; }
-        .sidebar-header { padding: 25px; font-size: 1.5rem; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.1); letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
-        .sidebar-header span { color: var(--primary); }
-        
-        .nav { padding: 20px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
-        .nav button { 
-            background: transparent; border: none; color: #94a3b8; padding: 14px 15px; 
-            border-radius: var(--radius); text-align: right; cursor: pointer;
-            display: flex; gap: 12px; align-items: center; transition: 0.3s; font-size: 0.95rem; font-weight: 500;
-        }
-        .nav button:hover, .nav button.active { background: var(--primary); color: white; transform: translateX(-5px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); }
-
-        /* Main Content */
-        .main { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; position: relative; }
-        .tab { display: none; animation: fadeIn 0.4s ease-in-out; }
-        .tab.active { display: block; }
-
-        /* Cards & Grid */
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 25px; margin-bottom: 30px; }
-        .stat-card { background: white; padding: 25px; border-radius: var(--radius); box-shadow: var(--shadow); position: relative; overflow: hidden; transition: transform 0.2s; }
-        .stat-card:hover { transform: translateY(-5px); }
-        .stat-card h3 { margin: 0 0 10px 0; color: #64748b; font-size: 0.9rem; }
-        .stat-card .val { font-size: 2rem; font-weight: 800; color: var(--text); }
-        .stat-card .icon-bg { position: absolute; left: -10px; bottom: -10px; font-size: 5rem; opacity: 0.05; color: var(--text); }
-        
-        .border-l { border-right: 4px solid var(--primary); }
-        .border-s { border-right: 4px solid var(--success); }
-        .border-w { border-right: 4px solid var(--warning); }
-        .border-i { border-right: 4px solid var(--info); }
-        
-        /* Special Card for Share Value */
-        .stat-card.special { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; }
-        .stat-card.special h3 { color: #94a3b8; }
-        .stat-card.special .val { color: #fff; }
-        .stat-card.special .icon-bg { color: #fff; opacity: 0.1; }
-
-        /* Sections & Tables */
-        .section { background: white; padding: 30px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 25px; }
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; }
-        .section-header h2 { margin: 0; font-size: 1.25rem; }
-
-        table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
-        th { text-align: right; padding: 15px; color: #64748b; font-weight: 600; font-size: 0.9rem; }
-        td { padding: 15px; background: #fff; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
-        tr:hover td { background: #f8fafc; }
-        td:first-child { border-right: 1px solid #f1f5f9; border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
-        td:last-child { border-left: 1px solid #f1f5f9; border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
-
-        /* Inputs & Buttons */
-        .input-group { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
-        input, select { padding: 12px 15px; border: 1px solid #e2e8f0; border-radius: 8px; flex: 1; outline: none; transition: 0.2s; font-size: 0.95rem; background: #fff; }
-        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
-        
-        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; font-size: 0.9rem; position: relative; overflow: hidden; }
-        .btn:active { transform: scale(0.98); }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-success { background: var(--success); color: white; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-warning { background: var(--warning); color: white; }
-        .btn-purple { background: var(--purple); color: white; } /* New Button Style */
-        .btn-purple:hover { background: #7c3aed; }
-        .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
-        
-        /* Badges */
-        .badge { padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; display: inline-block; }
-        .badge-pending { background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; }
-        .badge-success { background: #f0fdf4; color: #15803d; border: 1px solid #dcfce7; }
-
-        /* --- Modals & Utilities --- */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s; }
-        .modal-overlay.show { display: flex; opacity: 1; }
-        .modal-box { background: white; padding: 30px; border-radius: 16px; width: 400px; max-width: 90%; transform: translateY(20px); transition: transform 0.3s; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-        .modal-overlay.show .modal-box { transform: translateY(0); }
-        .modal-header { font-size: 1.3rem; font-weight: bold; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #94a3b8; }
-        .form-group { margin-bottom: 15px; text-align: right; }
-        .form-group label { display: block; margin-bottom: 8px; color: #475569; font-weight: 500; }
-        .form-group input, .form-group select { width: 100%; box-sizing: border-box; }
-
-        /* Toast Notifications */
-        .toast-container { position: fixed; bottom: 30px; left: 30px; z-index: 2000; display: flex; flex-direction: column; gap: 10px; }
-        .toast { background: white; padding: 15px 20px; border-radius: 10px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-right: 5px solid; min-width: 250px; display: flex; align-items: center; gap: 12px; animation: slideIn 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55); transform-origin: left center; }
-        .toast.success { border-color: var(--success); }
-        .toast.error { border-color: var(--danger); }
-        .toast i { font-size: 1.2rem; }
-        .toast.success i { color: var(--success); }
-        .toast.error i { color: var(--danger); }
-
-        /* Timeline Logs */
-        .timeline { position: relative; padding-right: 20px; border-right: 2px solid #e2e8f0; }
-        .timeline-item { margin-bottom: 25px; position: relative; padding-right: 20px; }
-        .timeline-dot { width: 12px; height: 12px; background: var(--primary); border-radius: 50%; position: absolute; right: -27px; top: 5px; border: 3px solid white; box-shadow: 0 0 0 2px #cbd5e1; }
-        .timeline-date { font-size: 0.85rem; color: #94a3b8; margin-bottom: 5px; font-weight: 600; }
-        .timeline-content { background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .timeline-content p { margin: 0; color: #334155; line-height: 1.5; }
-        .day-header { background: #e2e8f0; display: inline-block; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; color: #475569; margin: 15px 0; transform: translateX(50%); }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes slideIn { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-    </style>
 </head>
 <body>
+<!--إنشاء زر لفتح واغلاق القائمة جانبية-->
+<button class="menu-toggle" onclick="toggleSidebar()" style="display:none;"><i class="fas fa-bars"></i></button> 
 
-<div class="sidebar">
+    <!--القائمة الجانية -->
+<div class="sidebar" id="sidebar">
+    <!--عنوان في راس القائمة الجانية-->
     <div class="sidebar-header"><i class="fas fa-layer-group"></i> تـاجر <span>Admin</span></div>
+    
+    <!--ازرار التنقل بين الصفحات -->
     <div class="nav">
+    
         <button class="active" onclick="openTab('dashboard',this)"><i class="fas fa-home"></i> الرئيسية</button>
         <button onclick="openTab('users',this)"><i class="fas fa-users"></i> المستثمرين</button>
+        <button onclick="window.location.href='messages.html'"><i class="fas fa-comments"></i> مركز الرسائل</button>
         <button onclick="openTab('market',this)"><i class="fas fa-store"></i> إدارة السوق</button>
         <button onclick="openTab('withdrawals',this)"><i class="fas fa-money-bill-wave"></i> طلبات السحب</button>
         <button onclick="openTab('profits',this)"><i class="fas fa-hand-holding-usd"></i> توزيع الأرباح</button>
         <button onclick="openTab('logs',this)"><i class="fas fa-history"></i> السجل</button>
-        <button onclick="logout()" style="color:var(--danger); margin-top:20px;"><i class="fas fa-sign-out-alt"></i> خروج</button>
+        <button onclick="logout()" style="margin-top: 20px; color: red; background: none; border: 1px solid red; padding: 5px 10px; cursor: pointer;">
+            <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+</button>
     </div>
 </div>
-
+<!--الحاوية الاساسية في كل الصفحات داخل هذا الملف -->
 <div class="main">
+    <!--مخصص لظهور "إشعارات صغيرة" (مثل: تم الحفظ بنجاح) في زاوية الشاشة.-->
     <div class="toast-container" id="toastContainer"></div>
-
+    <!--قسم الإحصائيات بل صفحة الاساسية (Dashboard)-->
     <div id="dashboard" class="tab active">
+        <!--الحاوية الكبرى التي ترتب المربعات بجانب بعضها بشكل منظم (شبكة). -->
         <div class="grid">
+            <!--المربع نفسه :تصميم البطاقة (خلفية بيضاء، ظل، زوايا دائرية)-->
             <div class="stat-card border-l">
+                <!--هي الأيقونة التي تظهر داخل المربع (أيقونة تمثل مجموعة أشخاص).-->
                 <i class="fas fa-users icon-bg"></i>
                 <h3>إجمالي المستثمرين</h3>
+                <!--أهم جزء؛ الرقم الذي سيظهر للمستخدم (حالياً 0).-->
                 <span class="val" id="d-users">0</span>
             </div>
+            
             <div class="stat-card border-s">
                 <i class="fas fa-wallet icon-bg"></i>
                 <h3>رأس المال (ل.س)</h3>
@@ -149,31 +57,46 @@
             </div>
             <div class="stat-card border-i">
                 <i class="fas fa-boxes icon-bg"></i>
-                <h3>إجمالي الأسهم الموزعة</h3>
+                <h3>إجمالي الأسهم المباعة</h3>
                 <span class="val" id="d-total-shares">0</span>
             </div>
-             <div class="stat-card special">
+            <div class="stat-card special">
                 <i class="fas fa-chart-pie icon-bg"></i>
                 <h3>القيمة الدفترية للسهم</h3>
                 <span class="val" id="d-share-value">0</span>
-                <span style="font-size: 0.8rem; opacity: 0.8;">ل.س / سهم</span>
-            </div>
-            <div class="stat-card border-w">
-                <i class="fas fa-exchange-alt icon-bg"></i>
-                <h3>السحوبات المعلقة</h3>
-                <span class="val" id="d-pending">0</span>
+                <span style="font-size: 0.8rem; opacity: 0.8;">ل.س / سهم تقريبي</span>
             </div>
         </div>
-    </div>
+        
+        <div class="grid">
+            <!--يخبر المتصفح أن هذا المربع يجب أن يمتد ليأخذ مساحة عمودين بدلاً من عمود واحد، ليظهر بشكل أعرض من مربعات الإحصائيات التي فوقه-->
+             <div class="section" style="grid-column: span 2;">
+                 <!--اسم الدالة للتعديل عليها-->
+                <div class="section-header">
+                    <h2>🔥 آخر العمليات المسجلة</h2>
+                    <!--زر بحجم صغير (Small) عند الضغط عليه، يقوم "بتحويلك" تلقائياً إلى تبويب السجلات (Logs) لترى كل التفاصيل-->
+                    <button class="btn btn-sm btn-primary" onclick="openTab('logs', document.querySelectorAll('.nav button')[5])">عرض الكل</button>
+                </div>
+                 <!--صندوق فارغ" مؤقتاً.
 
+        كلمة "جاري التحميل..." تظهر للمستخدم فقط حتى يقوم كود الـ    JavaScript بجلب البيانات الحقيقية (مثل: "قام أحمد بسحب مبلغ...") ويضعها مكان هذه الكلمة-->
+                <div id="miniLogBox">جاري التحميل...</div>
+             </div>
+        </div>
+    </div>
+    <!--هذا الكود هو المسؤول عن عرض صفحة إدارة المستثمرين، وهو يتكون من جزأين رئيسيين: رأس الصفحة (العنوان والزر) والجدول الذي سيعرض الأسماء.-->
     <div id="users" class="tab">
         <div class="section">
+            <!--عنوان الصفحة مع إيموجي توضيحي.-->
             <div class="section-header">
                 <h2>👥 قائمة المستثمرين</h2>
+                <!--onclick="openModal('userModal')": عند الضغط على هذا الزر، سيقوم كود البرمجة بفتح "نافذة منبثقة" (Modal) تحتوي على نموذج (Form) لتعبئة بيانات الشخص الجديد.-->
                 <button class="btn btn-primary" onclick="openModal('userModal')"><i class="fas fa-plus"></i> إضافة مستثمر</button>
             </div>
+            <!--تُرتب فيه بيانات المستثمرين بشكل احترافي-->
             <table id="usersTable">
-                <thead><tr><th>الاسم</th><th>الرصيد</th><th>عدد الأسهم</th><th>تحكم</th></tr></thead>
+                <thead><tr><th>#ID</th><th>الاسم</th><th>الرصيد (Wallet)</th><th>قيمة الأسهم</th><th>الإجراءات</th></tr></thead>
+                <!--جلب بيانات الأشخاص من قاعدة البيانات وإضافتها هنا "ديناميكياً" على شكل صفوف (<tr>).-->
                 <tbody></tbody>
             </table>
         </div>
@@ -181,76 +104,72 @@
 
     <div id="market" class="tab">
         <div class="section">
-            <div class="section-header"><h2>🛒 إدارة السوق</h2></div>
+            <div class="section-header"><h2>🛒 إدارة الأسهم والمنتجات</h2></div>
+                <!--يحتوي على صناديق النص التي تعبئها لإضافة منتج جديد:-->
             <div class="input-group">
-                <input type="text" id="pName" placeholder="اسم المنتج">
-                <input type="number" id="pPrice" placeholder="السعر">
-                <input type="number" id="pReturn" placeholder="العائد">
-                <button class="btn btn-success" onclick="addProduct(this)">إضافة</button>
+                <input type="text" id="pName" placeholder="اسم السهم/المشروع">
+                <input type="number" id="pPrice" placeholder="سعر السهم الواحد">
+                <input type="number" id="pReturn" placeholder="العائد المتوقع %">
+                <!--عند ضغطه، يتم استدعاء وظيفة addProduct() التي تأخذ البيانات من الصناديق وتضعها في الجدول بالأسفل.-->
+                <button class="btn btn-success" onclick="addProduct()"><i class="fas fa-plus"></i> إضافة للسوق</button>
             </div>
+            <!--جدول عرض السوق (Market Table)-->
             <table id="marketTable">
-                <thead><tr><th>المنتج</th><th>السعر</th><th>العائد</th><th>إجراء</th></tr></thead>
+                <thead><tr><th>اسم السهم</th><th>السعر</th><th>العائد المتوقع</th><th>حالة السوق</th><th>تحكم</th></tr></thead>
+                <!--يتم تعبئته آلياً بواسطة البرمجة-->
                 <tbody></tbody>
             </table>
         </div>
     </div>
-
+<!--غرفة العمليات" المالية (Withdrawals)، وهي مخصصة لإدارة طلبات المستثمرين الذين يريدون سحب أموالهم من التطبيق إلى الواقع.-->
     <div id="withdrawals" class="tab">
         <div class="section">
-            <h2>💸 طلبات السحب المعلقة</h2>
+            <div class="section-header"><h2>💸 طلبات السحب المعلقة</h2></div>
             <table id="withdrawalsTable">
-                <thead><tr><th>المستثمر</th><th>المبلغ</th><th>الحالة</th><th>إجراء</th></tr></thead>
+                <thead><tr><th>المستثمر</th><th>المبلغ المطلوب</th><th>تاريخ الطلب</th><th>القرار</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
     </div>
-
+    <!--"عقل" التطبيق المالي، وهو المسؤول عن توزيع الأرباح على المساهمين.-->
     <div id="profits" class="tab">
-        <div class="section" style="max-width: 600px; margin: auto;">
-            <div style="text-align: center; margin-bottom: 30px;">
-                <i class="fas fa-chart-line" style="font-size: 3rem; color: var(--primary); margin-bottom: 15px; display:block;"></i>
-                <h2>توزيع الأرباح الدورية</h2>
-                <div style="background: #e0f2fe; color: #0369a1; padding: 10px; border-radius: 8px; display: inline-block; margin-top:10px;">
-                    <i class="fas fa-info-circle"></i> عدد الأسهم المستحقة: <strong id="profit-active-shares">جاري الحساب...</strong>
-                </div>
-            </div>
+        <!--الجدول الدخلي الذي يحتوي المعلومات بداخله-->
+        <div class="section" style="max-width: 600px; margin: auto; text-align: center;">
+            <!--ستايل فقط-->
+            <i class="fas fa-coins" style="font-size: 4rem; color: var(--warning); margin-bottom: 20px;"></i>
+            <h2 style="margin-bottom: 10px;">نظام توزيع الأرباح الذكي</h2>
+            <p style="color: var(--secondary); margin-bottom: 20px;">سيتم توزيع الأرباح وإضافتها تلقائياً لمحافظ المستخدمين.</p>
             
-            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-                <div class="form-group">
-                    <label>اختر طريقة التوزيع:</label>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-sm btn-primary" onclick="toggleProfitMode('total')" id="btnTotalMode">مبلغ كلي</button>
-                        <button class="btn btn-sm" style="background:#e2e8f0; color:#333" onclick="toggleProfitMode('share')" id="btnShareMode">لكل سهم</button>
+            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: right;">
+                <div class="form-group mb-4">
+                    <label style="font-weight:bold;">اختر آلية التوزيع:</label>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button class="btn btn-sm btn-primary" id="btnTotalMode" onclick="toggleProfitMode('total')">مبلغ كلي يوزع بالتساوي</button>
+                        <button class="btn btn-sm" id="btnShareMode" style="background:#e2e8f0; color:#333" onclick="toggleProfitMode('share')">ربح محدد لكل سهم</button>
                     </div>
                 </div>
 
-                <div id="totalInputGroup">
-                    <div class="form-group">
-                        <label>المبلغ الإجمالي للتوزيع (ل.س):</label>
-                        <input type="number" id="profitInput" placeholder="مثال: 5000000">
-                    </div>
+                <div style="margin-top: 20px;">
+                    <label id="profitLabel" style="display:block; margin-bottom:5px;">المبلغ الإجمالي (ل.س):</label>
+                    <input type="number" id="profitInput" placeholder="أدخل المبلغ هنا..." oninput="calculatePreview()">
                 </div>
-
-                <div id="shareInputGroup" style="display: none;">
-                    <div class="form-group">
-                        <label>ربح السهم الواحد (ل.س):</label>
-                        <input type="number" id="shareProfitInput" placeholder="مثال: 500" oninput="calcTotalNeeded()">
-                    </div>
-                    <div style="text-align: left; color: var(--primary); font-weight: bold;">
-                        المبلغ الكلي المطلوب: <span id="calcTotal">0</span> ل.س
-                    </div>
+                
+                <div style="margin-top: 15px; font-size: 0.9rem; color: var(--primary);">
+                    <i class="fas fa-calculator"></i> إجمالي الأسهم النشطة: <strong id="activeSharesDisplay">0</strong>
+                    <br>
+                    <span id="previewText">المبلغ لكل سهم: 0 ل.س</span>
                 </div>
             </div>
 
-            <button class="btn btn-success" style="width: 100%; padding: 15px; font-size: 1.1rem;" onclick="distribute(this)">
-                <i class="fas fa-rocket"></i> تنفيذ التوزيع
+            <button class="btn btn-success" style="width: 100%; padding: 15px;" onclick="executeDistribution()">
+                <i class="fas fa-check-circle"></i> اعتماد وتوزيع الأرباح
             </button>
         </div>
     </div>
-
+    <!--صفحة السجلات-->
     <div id="logs" class="tab">
         <div class="section">
-            <div class="section-header"><h2>📜 سجل العمليات</h2></div>
+            <div class="section-header"><h2>📜 سجل النظام الكامل</h2></div>
             <div id="timelineBox" class="timeline"></div>
         </div>
     </div>
@@ -262,486 +181,97 @@
             <span>إضافة مستثمر جديد</span>
             <button class="modal-close" onclick="closeModal('userModal')">&times;</button>
         </div>
-        <div class="form-group">
-            <label>الاسم الثلاثي:</label>
-            <input type="text" id="newUserName" placeholder="اسم المستثمر">
-        </div>
-        <div class="form-group">
-            <label>الرصيد الافتتاحي (اختياري):</label>
-            <input type="number" id="newUserBalance" value="0">
-        </div>
-        <div style="text-align: left; margin-top: 20px;">
-            <button class="btn btn-primary" onclick="confirmAddUser(this)">حفظ البيانات</button>
-        </div>
+        <!--id="newUserName": حقل نصي لكتابة اسم المستثمر-->
+        <input type="text" id="newUserName" placeholder="الاسم الثلاثي">
+        <!--id="newUserBalance": حقل رقمي لإدخال المبلغ الذي سيبدأ به المستثمر (رصيده الأولي).-->
+        <input type="number" id="newUserBalance" placeholder="الرصيد الافتتاحي (اختياري)">
+        <!--عند الضغط عليه، يتم استدعاء وظيفة برمجة تقوم بأخذ الأسماء والأرقام من الحقول، إضافتها للجدول، ثم إغلاق النافذة-->
+        <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="confirmAddUser()">حفظ البيانات</button>
     </div>
 </div>
-
+<!--ينشئ نافذة منبثقة (Modal) مخصصة لغرض واحد وحساس، وهو تعديل رصيد مستثمر معين (إضافة أموال أو سحبها يدويًا).-->
 <div class="modal-overlay" id="balanceModal">
     <div class="modal-box">
         <div class="modal-header">
-            <span>تعديل الرصيد</span>
+            <span>تعديل المحفظة المالية</span>
             <button class="modal-close" onclick="closeModal('balanceModal')">&times;</button>
         </div>
-        <input type="hidden" id="editUserId"> <div class="form-group">
-            <label>المبلغ (ل.س):</label>
-            <input type="number" id="balanceAmount" placeholder="موجب للإضافة، سالب للخصم">
-            <small style="color: #64748b">أدخل رقم سالب (مثال: -5000) للخصم من الرصيد.</small>
-        </div>
-        <div style="text-align: left; margin-top: 20px;">
-            <button class="btn btn-warning" onclick="confirmEditBalance(this)">تحديث الرصيد</button>
-        </div>
+        <input type="hidden" id="editUserId">
+        <p style="margin-bottom:10px; font-size:0.9rem;">أدخل القيمة المراد إضافتها (أو سالب للخصم)</p>
+        <input type="number" id="balanceAmount" placeholder="مثال: 5000 أو -2000">
+        <button class="btn btn-warning" style="width:100%; margin-top:15px;" onclick="confirmEditBalance()">تحديث الرصيد</button>
     </div>
 </div>
 
 <div class="modal-overlay" id="assetModal">
     <div class="modal-box">
         <div class="modal-header">
-            <span>إضافة سهم/أصل للمستثمر</span>
+            <span>شراء أسهم للمستثمر</span>
             <button class="modal-close" onclick="closeModal('assetModal')">&times;</button>
         </div>
         <input type="hidden" id="assetUserId">
-        
-        <div class="form-group">
-            <label>اختر المنتج (السهم):</label>
-            <select id="assetSelect">
-                <option value="">-- جاري التحميل --</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>الكمية (عدد الأسهم):</label>
-            <input type="number" id="assetQty" value="1" min="1">
-        </div>
-
-        <div style="text-align: left; margin-top: 20px;">
-            <button class="btn btn-purple" onclick="confirmAddAsset(this)"><i class="fas fa-plus-circle"></i> إضافة الآن</button>
-        </div>
+        <label>اختر السهم:</label>
+        <select id="assetSelect"></select>
+        <label style="margin-top:10px; display:block;">الكمية:</label>
+        <input type="number" id="assetQty" value="1" min="1">
+        <button class="btn btn-purple" style="width:100%; margin-top:15px;" onclick="confirmAddAsset()">شراء وإضافة</button>
     </div>
 </div>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, updateDoc, doc, increment, arrayUnion, serverTimestamp, onSnapshot, query, orderBy, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+<script type="text/javascript">
+
+    
+    
+    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+
+    (function(){
+
+        var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+
+        s1.async=true;
+
+        s1.src='https://embed.tawk.to/YOUR_ID_HERE/default'; // استبدل هذا برابط حسابك الحقيقي
+
+        s1.charset='UTF-8';
+
+        s1.setAttribute('crossorigin','*');
+
+        s0.parentNode.insertBefore(s1,s0);
+
+    })();
+</script>
+    
+    
+<script type="module" src="control.js">try {
+    
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyCI_0-7KsqnssqkOSkNVK0FmuRokDNXriE",
-        authDomain: "tajer-app-e1b97.firebaseapp.com",
-        projectId: "tajer-app-e1b97",
-        storageBucket: "tajer-app-e1b97.firebasestorage.app",
-        messagingSenderId: "92669858022",
-        appId: "1:92669858022:web:a1223e9121190815066b27"
-    };
+const auth = getAuth();
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
-
-    // Global variable to hold real-time data
-    let globalTotalShares = 0;
-    let marketItemsList = []; // To store market items for the dropdown
-
-    // --- Authentication ---
-    onAuthStateChanged(auth, async (user) => {
-        if (!user || user.email !== "admin33@tajer44.com") {
-            window.location.replace("admin-login.html");
-        } else {
-            console.log("Admin Logged In");
-            initApp();
-        }
-    });
-
-    window.logout = () => signOut(auth);
-
-    function initApp() {
-        // --- 1. Users Logic & Dashboard Stats ---
-        onSnapshot(collection(db, "users"), (snap) => {
-            const tbody = document.querySelector("#usersTable tbody");
-            tbody.innerHTML = "";
-            
-            let totalCap = 0;
-            let totalShares = 0;
-            
-            snap.forEach(d => {
-                const u = d.data();
-                const userBalance = u.balance || 0;
-                const userShares = (u.assets || []).length;
-
-                totalCap += userBalance;
-                totalShares += userShares;
-
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>
-                        <div style="font-weight:bold; color:var(--sidebar)">${u.name}</div>
-                        <small style="color:#94a3b8; font-size:0.7rem">${d.id}</small>
-                    </td>
-                    <td style="color:var(--success); font-weight:700">${userBalance.toLocaleString()}</td>
-                    <td><span class="badge badge-success">${userShares}</span></td>
-                    <td>
-                        <button class="btn btn-purple btn-sm" onclick="openAssetModal('${d.id}')" title="إضافة سهم"><i class="fas fa-box-open"></i></button>
-                        <button class="btn btn-warning btn-sm" onclick="openBalanceModal('${d.id}')" title="تعديل الرصيد"><i class="fas fa-coins"></i></button>
-                        <button class="btn btn-danger btn-sm" onclick="delUser('${d.id}')" title="حذف"><i class="fas fa-trash"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            // Update Globals
-            globalTotalShares = totalShares;
-
-            // Update Dashboard
-            document.getElementById("d-users").innerText = snap.size;
-            document.getElementById("d-capital").innerText = totalCap.toLocaleString();
-            document.getElementById("d-total-shares").innerText = totalShares.toLocaleString();
-            
-            const shareValue = totalShares > 0 ? (totalCap / totalShares) : 0;
-            document.getElementById("d-share-value").innerText = shareValue.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 2});
-            document.getElementById("profit-active-shares").innerText = totalShares.toLocaleString();
-        });
-
-        // --- 2. Market Logic (Updated to fill Dropdown) ---
-        onSnapshot(collection(db, "market_items"), (snap) => {
-            const tbody = document.querySelector("#marketTable tbody");
-            tbody.innerHTML = "";
-            
-            marketItemsList = []; // Reset list
-
-            snap.forEach(d => {
-                const p = d.data();
-                // Add to table
-                tbody.innerHTML += `<tr>
-                    <td>${p.name}</td><td>${p.price.toLocaleString()}</td><td>${p.returnRate}</td>
-                    <td><button class="btn btn-danger btn-sm" onclick="delProduct('${d.id}')"><i class="fas fa-times"></i></button></td>
-                </tr>`;
-                
-                // Add to local list for dropdown
-                marketItemsList.push({ id: d.id, name: p.name, price: p.price });
-            });
-        });
-
-        // --- 3. Withdrawals Logic ---
-        onSnapshot(query(collection(db, "withdrawals"), where("status", "==", "pending")), (snap) => {
-            const tbody = document.querySelector("#withdrawalsTable tbody");
-            tbody.innerHTML = "";
-            document.getElementById("d-pending").innerText = snap.size;
-            if(snap.empty) tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#999'>لا توجد طلبات معلقة</td></tr>";
-            
-            snap.forEach(d => {
-                const w = d.data();
-                tbody.innerHTML += `<tr>
-                    <td>${w.userName}</td>
-                    <td style="font-weight:bold">${w.amount.toLocaleString()}</td>
-                    <td><span class="badge badge-pending">قيد الانتظار</span></td>
-                    <td>
-                        <button class="btn btn-success btn-sm" onclick="approveWithdraw('${d.id}', '${w.userId}', ${w.amount})"><i class="fas fa-check"></i></button>
-                        <button class="btn btn-danger btn-sm" onclick="rejectWithdraw('${d.id}')"><i class="fas fa-times"></i></button>
-                    </td>
-                </tr>`;
-            });
-        });
-
-        // --- 4. Logs Logic ---
-        onSnapshot(query(collection(db, "logs"), orderBy("timestamp", "desc")), (snap) => {
-            const container = document.getElementById("timelineBox");
-            container.innerHTML = "";
-            let lastDate = "";
-
-            snap.forEach(d => {
-                const l = d.data();
-                if(!l.timestamp) return;
-                
-                const dateObj = l.timestamp.toDate();
-                const dateStr = dateObj.toLocaleDateString('ar-SY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-                const timeStr = dateObj.toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' });
-
-                if (dateStr !== lastDate) {
-                    container.innerHTML += `<div class="day-header">${dateStr}</div>`;
-                    lastDate = dateStr;
-                }
-
-                let icon = "fa-info-circle";
-                let color = "var(--primary)";
-                if(l.text.includes("حذف")) { icon = "fa-trash"; color = "var(--danger)"; }
-                else if(l.text.includes("إضافة")) { icon = "fa-plus"; color = "var(--success)"; }
-                else if(l.text.includes("توزيع")) { icon = "fa-gift"; color = "var(--warning)"; }
-                else if(l.text.includes("سحب")) { icon = "fa-money-bill"; color = "#8b5cf6"; }
-
-                container.innerHTML += `
-                    <div class="timeline-item">
-                        <div class="timeline-dot" style="background:${color}"></div>
-                        <div class="timeline-date">${timeStr}</div>
-                        <div class="timeline-content">
-                            <i class="fas ${icon}" style="color:${color}; margin-left:5px;"></i> ${l.text}
-                        </div>
-                    </div>
-                `;
-            });
-        });
-    }
-
-    /* =========================================
-       UI INTERACTION FUNCTIONS
-       ========================================= */
-    
-    window.openModal = (id) => { document.getElementById(id).classList.add('show'); };
-    window.closeModal = (id) => { document.getElementById(id).classList.remove('show'); };
-    
-    window.openBalanceModal = (id) => {
-        document.getElementById("editUserId").value = id;
-        document.getElementById("balanceAmount").value = "";
-        window.openModal('balanceModal');
-    };
-
-    // New: Open Asset Modal and Populate Dropdown
-    window.openAssetModal = (id) => {
-        document.getElementById("assetUserId").value = id;
-        const select = document.getElementById("assetSelect");
-        select.innerHTML = '<option value="">-- اختر المنتج --</option>';
-        
-        marketItemsList.forEach(item => {
-            select.innerHTML += `<option value="${item.id}" data-name="${item.name}">${item.name} (${item.price.toLocaleString()} ل.س)</option>`;
-        });
-        
-        document.getElementById("assetQty").value = 1;
-        window.openModal('assetModal');
-    };
-
-    function showToast(msg, type = 'success') {
-        const container = document.getElementById("toastContainer");
-        const toast = document.createElement("div");
-        toast.className = `toast ${type}`;
-        toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> <span>${msg}</span>`;
-        container.appendChild(toast);
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
-    }
-
-    function setLoading(btn, isLoading) {
-        if(isLoading) {
-            btn.dataset.text = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التنفيذ...';
-            btn.disabled = true;
-        } else {
-            btn.innerHTML = btn.dataset.text;
-            btn.disabled = false;
+// هذا الكود يفحص حالة المستخدم فور فتح الصفحة
+onAuthStateChanged(auth, (user) => {
+    if (!user) {
+        // إذا لم يكن مسجل دخول، ارجعه لصفحة الدخول فوراً
+        window.location.href = "index.html"; 
+    } else {
+        // إذا حاول مستخدم عادي الدخول، اطرده (اختياري)
+        if (user.email !== "admin33@tajer44.com") {
+             alert("غير مسموح لك بالدخول");
+             signOut(auth).then(() => window.location.href = "index.html");
         }
     }
-
-    /* =========================================
-       ACTION LOGIC
-       ========================================= */
-
-    // 1. Add User
-    window.confirmAddUser = async (btn) => {
-        const name = document.getElementById("newUserName").value;
-        const bal = Number(document.getElementById("newUserBalance").value);
-        if(!name) return showToast("يرجى إدخال الاسم", "error");
+});
         
-        setLoading(btn, true);
-        try {
-            await addDoc(collection(db, "users"), { name, balance: bal, assets: [], createdAt: serverTimestamp() });
-            logAction(`إضافة مستثمر جديد: ${name}`);
-            showToast("تمت إضافة المستثمر بنجاح");
-            closeModal('userModal');
-            document.getElementById("newUserName").value = "";
-        } catch(e) { showToast("حدث خطأ", "error"); }
-        setLoading(btn, false);
-    };
+    await signInWithEmailAndPassword(auth, email, password);
+    // هذا هو السطر السحري الذي ينقلك لصفحة الإدارة فور النجاح
+    window.location.href = "admin.html"; 
+} catch (error) {
+    errorMsg.style.display = "block";
+    loginBtn.disabled = false;
+    loginBtn.innerText = "تسجيل الدخول";
+}</script>
 
-    // 2. Edit Balance
-    window.confirmEditBalance = async (btn) => {
-        const id = document.getElementById("editUserId").value;
-        const amount = Number(document.getElementById("balanceAmount").value);
-        if(!amount && amount !== 0) return showToast("أدخل مبلغ صحيح", "error");
 
-        setLoading(btn, true);
-        try {
-            await updateDoc(doc(db, "users", id), { balance: increment(amount) });
-            logAction(`تعديل رصيد ${id} بقيمة ${amount}`);
-            showToast("تم تحديث الرصيد");
-            closeModal('balanceModal');
-        } catch(e) { showToast("خطأ في التعديل", "error"); }
-        setLoading(btn, false);
-    };
-
-    // 3. Add Asset (NEW FUNCTION)
-    window.confirmAddAsset = async (btn) => {
-        const uid = document.getElementById("assetUserId").value;
-        const select = document.getElementById("assetSelect");
-        const qty = parseInt(document.getElementById("assetQty").value);
-        const itemId = select.value;
-
-        if(!itemId) return showToast("اختر المنتج أولاً", "error");
-        if(qty < 1) return showToast("الكمية يجب أن تكون 1 على الأقل", "error");
-
-        const itemName = select.options[select.selectedIndex].getAttribute('data-name');
-        
-        setLoading(btn, true);
-        try {
-            const userRef = doc(db, "users", uid);
-            
-            // Create array of assets to add
-            const promises = [];
-            for(let i = 0; i < qty; i++) {
-                // adding asset object
-                const newAsset = {
-                    itemId: itemId,
-                    name: itemName,
-                    addedAt: new Date().toISOString()
-                };
-                promises.push(updateDoc(userRef, { assets: arrayUnion(newAsset) }));
-            }
-
-            await Promise.all(promises);
-
-            logAction(`إضافة ${qty} سهم (${itemName}) للمستخدم ${uid}`);
-            showToast(`تمت إضافة ${qty} سهم بنجاح`);
-            closeModal('assetModal');
-        } catch(e) {
-            console.error(e);
-            showToast("حدث خطأ في الإضافة", "error");
-        }
-        setLoading(btn, false);
-    };
-
-    // 4. Delete User
-    window.delUser = async (id) => {
-        if(confirm("هل أنت متأكد تماماً؟")) {
-            await deleteDoc(doc(db, "users", id));
-            logAction(`حذف مستخدم ${id}`);
-            showToast("تم الحذف", "error");
-        }
-    };
-
-    // 5. Products
-    window.addProduct = async (btn) => {
-        const name = document.getElementById("pName").value;
-        const price = Number(document.getElementById("pPrice").value);
-        const ret = document.getElementById("pReturn").value;
-
-        if(!name || !price) return showToast("بيانات ناقصة", "error");
-        
-        setLoading(btn, true);
-        await addDoc(collection(db, "market_items"), { name, price, returnRate: ret, createdAt: serverTimestamp() });
-        logAction(`إضافة منتج: ${name}`);
-        showToast("تمت إضافة المنتج");
-        document.getElementById("pName").value = "";
-        setLoading(btn, false);
-    };
-
-    window.delProduct = async (id) => {
-        if(confirm("حذف المنتج؟")) {
-            await deleteDoc(doc(db, "market_items", id));
-            showToast("تم حذف المنتج", "error");
-        }
-    };
-
-    // 6. Withdrawals
-    window.approveWithdraw = async (id, uid, amount) => {
-        await updateDoc(doc(db, "withdrawals", id), { status: "approved" });
-        logAction(`قبول سحب ${amount} لـ ${uid}`);
-        showToast("تم قبول الطلب");
-    };
-
-    window.rejectWithdraw = async (id) => {
-        if(confirm("رفض الطلب؟")) {
-            await updateDoc(doc(db, "withdrawals", id), { status: "rejected" });
-            showToast("تم رفض الطلب", "error");
-        }
-    };
-
-    // 7. Profits
-    let profitMode = 'total'; 
-
-    window.toggleProfitMode = (mode) => {
-        profitMode = mode;
-        const tBtn = document.getElementById("btnTotalMode");
-        const sBtn = document.getElementById("btnShareMode");
-        const tInput = document.getElementById("totalInputGroup");
-        const sInput = document.getElementById("shareInputGroup");
-
-        if(mode === 'total') {
-            tBtn.className = "btn btn-sm btn-primary"; sBtn.className = "btn btn-sm"; sBtn.style.background = "#e2e8f0"; sBtn.style.color="#333";
-            tInput.style.display = "block"; sInput.style.display = "none";
-        } else {
-            sBtn.className = "btn btn-sm btn-primary"; tBtn.className = "btn btn-sm"; tBtn.style.background = "#e2e8f0"; tBtn.style.color="#333";
-            sInput.style.display = "block"; tInput.style.display = "none";
-        }
-    };
-
-    window.calcTotalNeeded = () => {
-        const perShare = Number(document.getElementById("shareProfitInput").value);
-        if(!perShare) { document.getElementById("calcTotal").innerText = 0; return; }
-        document.getElementById("calcTotal").innerText = (perShare * globalTotalShares).toLocaleString();
-    };
-
-    window.distribute = async (btn) => {
-        setLoading(btn, true);
-        try {
-            const snap = await getDocs(collection(db, "users"));
-            let currentTotalShares = 0;
-            snap.forEach(d => { 
-                const u = d.data();
-                const shares = (u.assets && Array.isArray(u.assets)) ? u.assets.length : 0;
-                currentTotalShares += shares; 
-            });
-
-            if(currentTotalShares === 0) throw new Error("لا يوجد أي أسهم موزعة حالياً!");
-
-            let perShare = 0;
-            let totalAmount = 0;
-
-            if(profitMode === 'total') {
-                totalAmount = Number(document.getElementById("profitInput").value);
-                if(!totalAmount) throw new Error("يرجى إدخال المبلغ الإجمالي");
-                perShare = totalAmount / currentTotalShares;
-            } else {
-                perShare = Number(document.getElementById("shareProfitInput").value);
-                if(!perShare) throw new Error("يرجى إدخال ربح السهم الواحد");
-                totalAmount = perShare * currentTotalShares;
-            }
-
-            const batchPromises = snap.docs.map(userDoc => {
-                const u = userDoc.data();
-                const shares = (u.assets && Array.isArray(u.assets)) ? u.assets.length : 0;
-                if(shares > 0) {
-                    const profit = Math.floor(shares * perShare);
-                    return updateDoc(doc(db, "users", userDoc.id), { balance: increment(profit) });
-                }
-            });
-
-            await Promise.all(batchPromises);
-            
-            logAction(`توزيع أرباح: ${totalAmount.toLocaleString()} (السهم: ${perShare.toFixed(1)})`);
-            showToast(`تم التوزيع بنجاح! حصة السهم: ${perShare.toFixed(1)} ل.س`);
-            
-            document.getElementById("profitInput").value = "";
-            document.getElementById("shareProfitInput").value = "";
-            document.getElementById("calcTotal").innerText = "0";
-
-        } catch(e) {
-            console.error(e);
-            showToast(e.message, "error");
-        }
-        setLoading(btn, false);
-    };
-
-    // --- Logger ---
-    async function logAction(text) {
-        await addDoc(collection(db, "logs"), { text, timestamp: serverTimestamp() });
-    }
-
-    // --- Tabs ---
-    window.openTab = (id, btn) => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
-        if(btn) btn.classList.add('active');
-    };
-
-</script>
 </body>
 </html>

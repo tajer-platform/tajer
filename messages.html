@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مركز الرسائل | إدارة تاجر</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+:root{
+    --green:#10b981;
+    --green-hover:#059669;
+    --dark:#0f172a;
+    --bg:#f8fafc;
+    --border:#e2e8f0;
+}
+
+/* RESET */
+*{box-sizing:border-box}
+body{
+    margin:0;
+    font-family:'Segoe UI',Tahoma;
+    background:var(--bg);
+    display:flex;
+    height:100vh;
+    overflow:hidden;
+}
+
+/* SIDEBAR */
+.sidebar{
+    width:260px;
+    background:var(--dark);
+    color:white;
+    position:fixed;
+    right:0;
+    top:0;
+    height:100%;
+}
+.sidebar-header{
+    padding:25px;
+    font-size:1.4rem;
+    font-weight:bold;
+    color:var(--green);
+    border-bottom:1px solid rgba(255,255,255,.1);
+}
+.nav{padding:15px;display:flex;flex-direction:column;gap:8px}
+.nav button{
+    background:none;border:none;color:#94a3b8;
+    padding:12px 15px;border-radius:10px;
+    text-align:right;cursor:pointer;
+    display:flex;gap:12px;align-items:center;
+}
+.nav button:hover,.nav button.active{
+    background:rgba(16,185,129,.1);color:var(--green)
+}
+.nav button.active{background:var(--green);color:white}
+
+/* LAYOUT */
+.main-content{
+    margin-right:260px;
+    width:calc(100% - 260px);
+    display:flex;
+}
+
+/* USERS */
+.messenger-panel{
+    width:340px;background:white;
+    border-left:1px solid var(--border);
+    display:flex;flex-direction:column;
+    transition:.3s;
+}
+.messenger-panel.collapsed{width:0;opacity:0;pointer-events:none}
+
+.user-item{
+    display:flex;gap:12px;
+    padding:15px;margin:6px 10px;
+    border-radius:14px;cursor:pointer;
+    transition:.2s;
+}
+.user-item:hover{background:#f1f5f9}
+.user-item.active{
+    background:#ecfdf5;
+    border-right:4px solid var(--green);
+}
+.avatar{
+    width:45px;height:45px;border-radius:12px;
+    background:linear-gradient(135deg,var(--green),#34d399);
+    color:white;display:flex;align-items:center;justify-content:center;
+    font-weight:bold;
+}
+
+/* CHAT */
+.chat-view{
+    flex:1;display:flex;flex-direction:column;
+    position:relative;background:white;
+}
+
+.messages-box{
+    flex:1;padding:25px;
+    background-image:radial-gradient(#e2e8f0 1px,transparent 1px);
+    background-size:20px 20px;
+    overflow-y:auto;
+}
+
+@keyframes msgIn{
+    from{opacity:0;transform:translateY(10px) scale(.98)}
+    to{opacity:1;transform:none}
+}
+
+.bubble{
+    max-width:70%;
+    padding:14px 18px;margin-bottom:10px;
+    line-height:1.5;
+    box-shadow:0 2px 4px rgba(0,0,0,.05);
+    animation:msgIn .25s ease forwards;
+    transition:.2s;
+}
+.bubble:hover{
+    transform:scale(1.02);
+    box-shadow:0 8px 20px rgba(0,0,0,.08);
+}
+
+.bubble.admin{
+    background:white;border:1px solid var(--border);
+    border-radius:20px 20px 20px 4px;
+    align-self:flex-start;
+}
+.bubble.user{
+    background:var(--green);color:white;
+    border-radius:20px 20px 4px 20px;
+    align-self:flex-end;
+}
+
+.time{
+    font-size:.7rem;opacity:.6;
+    margin-top:6px;display:block;text-align:left;
+}
+
+/* FOOTER */
+.chat-footer{
+    padding:15px 25px;
+    display:flex;gap:10px;
+    border-top:1px solid var(--border);
+}
+.input-box{
+    flex:1;padding:12px 18px;
+    border-radius:12px;border:1.5px solid var(--border);
+    outline:none;
+}
+.input-box:focus{
+    border-color:var(--green);
+    box-shadow:0 0 0 3px rgba(16,185,129,.15);
+}
+.btn-send{
+    width:48px;height:48px;border-radius:12px;
+    border:none;background:var(--green);
+    color:white;cursor:pointer;
+}
+.btn-send:hover{background:var(--green-hover)}
+
+/* INFO */
+.info-panel{
+    width:280px;background:white;
+    border-right:1px solid var(--border);
+    padding:25px;transition:.3s;
+}
+.info-panel.collapsed{width:0;opacity:0;pointer-events:none;padding:0}
+
+/* TOGGLE */
+.toggle-btn{
+    position:absolute;top:50%;transform:translateY(-50%);
+    width:24px;height:50px;
+    background:var(--dark);color:white;
+    border:none;cursor:pointer;
+}
+.toggle-right{right:0;border-radius:8px 0 0 8px}
+.toggle-left{left:0;border-radius:0 8px 8px 0}
+
+/* Typing */
+#typingIndicator{
+    padding:6px 25px;
+    font-size:.8rem;color:#64748b;
+    display:none;
+}
+.dot::after{
+    content:'';
+    animation:dots 1.5s steps(3,end) infinite;
+}
+@keyframes dots{
+    0%{content:''}
+    33%{content:'.'}
+    66%{content:'..'}
+    100%{content:'...'}
+}
+</style>
+</head>
+
+<body>
+
+<audio id="msgSound" src="https://assets.mixkit.co/sfx/preview/mixkit-message-pop-alert-2354.mp3"></audio>
+
+<div class="sidebar">
+    <div class="sidebar-header"><i class="fas fa-comments"></i> تاجر Admin</div>
+    <div class="nav">
+        <button class="active"><i class="fas fa-comments"></i> الرسائل</button>
+    
+        <button onclick="window.location.href='admin.html'">
+            <i class="fas fa-home"></i> العودة للرئيسية
+        </button>
+    
+        <button id="logoutBtn" style="color:#ef4444"><i class="fas fa-sign-out-alt"></i> خروج</button>
+        
+    </div>
+</div>
+
+<div class="main-content">
+
+<div class="messenger-panel" id="sideUsers">
+    <div style="padding:20px;border-bottom:1px solid var(--border)">
+        <strong>المحادثات</strong>
+    </div>
+    <div class="user-list" style="flex:1;overflow-y:auto"></div>
+</div>
+
+<div class="chat-view">
+<button class="toggle-btn toggle-right" onclick="toggleSide('sideUsers')"><i class="fas fa-users"></i></button>
+
+<div style="padding:18px 25px;border-bottom:1px solid var(--border)">
+    <strong id="currentChatName">اختر محادثة</strong>
+    <div id="statusDot" style="font-size:.75rem;color:#94a3b8">● غير متصل</div>
+</div>
+
+<div id="typingIndicator"><span class="dot"></span> المستخدم يكتب الآن</div>
+
+<div class="messages-box" id="chatBox">
+    <div style="text-align:center;color:#94a3b8;margin-top:40px">
+        اختر مستخدم لبدء الدردشة
+    </div>
+</div>
+
+<div class="chat-footer">
+    <input id="msgInput" class="input-box" placeholder="اكتب ردك...">
+    <button class="btn-send" id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+</div>
+
+<button class="toggle-btn toggle-left" onclick="toggleSide('sideInfo')"><i class="fas fa-info-circle"></i></button>
+</div>
+
+<div class="info-panel" id="sideInfo">
+    <div id="userInfoContent" style="display:none;text-align:center">
+        <div id="infoAvatar" style="width:80px;height:80px;background:var(--green);color:white;border-radius:20px;margin:auto;font-size:2rem;display:flex;align-items:center;justify-content:center"></div>
+        <h3 id="infoName"></h3>
+        <div id="infoWallet"></div>
+    </div>
+    <div id="noInfo" style="text-align:center;color:#94a3b8">لا توجد بيانات</div>
+</div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+
+const app = initializeApp({
+    apiKey:"AIzaSyCI_0-7KsqnssqkOSkNVK0FmuRokDNXriE",
+    authDomain:"tajer-app-e1b97.firebaseapp.com",
+    projectId:"tajer-app-e1b97"
+});
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+let currentUser=null, unsub=null;
+
+/* حماية */
+onAuthStateChanged(auth,u=>{ if(!u) location.href="admin-login.html"; });
+
+window.toggleSide=id=>document.getElementById(id).classList.toggle("collapsed");
+
+/* Users */
+onSnapshot(collection(db,"users"),snap=>{
+    const list=document.querySelector(".user-list");
+    list.innerHTML="";
+    snap.forEach(d=>{
+        const u=d.data(),id=d.id;
+        const item=document.createElement("div");
+        item.className="user-item";
+        item.innerHTML=`<div class="avatar">${u.name[0]}</div><div><strong>${u.name}</strong></div>`;
+        item.onclick=()=>{
+            document.querySelectorAll(".user-item").forEach(e=>e.classList.remove("active"));
+            item.classList.add("active");
+            openChat(id,u);
+        };
+        list.appendChild(item);
+    });
+});
+
+function openChat(id,u){
+    currentUser=id;
+    currentChatName.innerText=u.name;
+    statusDot.innerText="● متصل";
+    statusDot.style.color="var(--green)";
+    userInfoContent.style.display="block";
+    noInfo.style.display="none";
+    infoAvatar.innerText=u.name[0];
+    infoName.innerText=u.name;
+    infoWallet.innerText=(u.balance||0)+" ل.س";
+
+    if(unsub)unsub();
+    const q=query(collection(db,"chats",id,"messages"),orderBy("timestamp"));
+    let lastDay="";
+    unsub=onSnapshot(q,s=>{
+        const box=chatBox;
+        box.innerHTML="";
+        s.forEach(doc=>{
+            const m=doc.data();
+            const d=m.timestamp?.toDate();
+            const day=d?.toLocaleDateString('ar-EG');
+            if(day && day!==lastDay){
+                const sep=document.createElement("div");
+                sep.style="text-align:center;font-size:.7rem;color:#94a3b8;margin:15px 0";
+                sep.innerText=day;
+                box.appendChild(sep);
+                lastDay=day;
+            }
+            const b=document.createElement("div");
+            b.className="bubble "+(m.sender==="admin"?"admin":"user");
+            b.innerHTML=`${m.text}<span class="time">${d?.toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'})||''}</span>`;
+            box.appendChild(b);
+        });
+        box.scrollTop=box.scrollHeight;
+        msgSound.play();
+    });
+}
+
+/* Send */
+async function send(){
+    const t=msgInput.value.trim();
+    if(!t||!currentUser)return;
+    await addDoc(collection(db,"chats",currentUser,"messages"),{
+        text:t,sender:"admin",timestamp:serverTimestamp()
+    });
+    msgInput.value="";
+}
+sendBtn.onclick=send;
+msgInput.onkeypress=e=>e.key==="Enter"&&send();
+
+msgInput.addEventListener("input",()=>{
+    typingIndicator.style.display="block";
+    clearTimeout(window.t);
+    window.t=setTimeout(()=>typingIndicator.style.display="none",1000);
+});
+
+logoutBtn.onclick=()=>signOut(auth).then(()=>location.href="admin-login.html");
+</script>
+
+</body>
+</html>
