@@ -1,5 +1,5 @@
 /*************************************************
- * 1. Firebase Imports & Config
+* 1. Firebase Imports & Config
  *************************************************/
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import {
