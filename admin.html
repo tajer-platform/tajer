@@ -60,11 +60,24 @@
                 <h3>إجمالي الأسهم المباعة</h3>
                 <span class="val" id="d-total-shares">0</span>
             </div>
-            <div class="stat-card special">
+            <div class="stat-card special" onclick="openModal('sharePriceModal')" style="cursor: pointer;">
                 <i class="fas fa-chart-pie icon-bg"></i>
-                <h3>القيمة الدفترية للسهم</h3>
-                <span class="val" id="d-share-value">0</span>
-                <span style="font-size: 0.8rem; opacity: 0.8;">ل.س / سهم تقريبي</span>
+                <h3>سعر السهم الحالي</h3> <span class="val" id="d-share-value">0</span>
+                <span style="font-size: 0.8rem; opacity: 0.8;">ل.س / اضغط للتعديل</span>
+            </div>
+
+            <div class="modal-overlay" id="sharePriceModal">
+                <div class="modal-box">
+                    <div class="modal-header">
+                        <span>تحديث قيمة السهم</span>
+                        <button class="modal-close" onclick="closeModal('sharePriceModal')">&times;</button>
+                    </div>
+                    <div style="padding: 10px 0;">
+                        <label style="display: block; margin-bottom: 10px; font-size: 0.9rem;">أدخل القيمة الجديدة للسهم الواحد:</label>
+                        <input type="number" id="manualSharePriceInput" placeholder="مثلاً: 5000" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd;">
+                    </div>
+                    <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="saveSharePrice()">حفظ القيمة الجديدة</button>
+                </div>
             </div>
         </div>
         
@@ -95,7 +108,18 @@
             </div>
             <!--تُرتب فيه بيانات المستثمرين بشكل احترافي-->
             <table id="usersTable">
-                <thead><tr><th>#ID</th><th>الاسم</th><th>الرصيد (Wallet)</th><th>قيمة الأسهم</th><th>الإجراءات</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>ID#</th>
+                        <th>الاسم الكامل</th>
+                        <th>رقم الجوال</th>
+                        <th>الرصيد</th>
+                        <th>الممتلكات</th>
+                        <th>المبلغ الكلي المدفوع</th>
+                        <th>الأسهم</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
                 <!--جلب بيانات الأشخاص من قاعدة البيانات وإضافتها هنا "ديناميكياً" على شكل صفوف (<tr>).-->
                 <tbody></tbody>
             </table>
@@ -183,6 +207,14 @@
         </div>
         <!--id="newUserName": حقل نصي لكتابة اسم المستثمر-->
         <input type="text" id="newUserName" placeholder="الاسم الثلاثي">
+        
+        <input type="tel" 
+               id="newUserPhone" 
+               placeholder="رقم الجوال (10 أرقام)" 
+               maxlength="10" 
+               oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+               style="width: 100%; padding: 10px; margin-top: 10px; border: 1px solid #ddd; border-radius: 5px;">
+        
         <!--id="newUserBalance": حقل رقمي لإدخال المبلغ الذي سيبدأ به المستثمر (رصيده الأولي).-->
         <input type="number" id="newUserBalance" placeholder="الرصيد الافتتاحي (اختياري)">
         <!--عند الضغط عليه، يتم استدعاء وظيفة برمجة تقوم بأخذ الأسماء والأرقام من الحقول، إضافتها للجدول، ثم إغلاق النافذة-->
@@ -271,6 +303,7 @@ onAuthStateChanged(auth, (user) => {
     loginBtn.disabled = false;
     loginBtn.innerText = "تسجيل الدخول";
 }</script>
+
 
 
 </body>

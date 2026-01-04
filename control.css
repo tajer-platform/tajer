@@ -10,7 +10,30 @@
             --text-dark: #1e293b;
             --sidebar-width: 260px;
         }
+        /* التصميم الافتراضي للنافذة (مخفية) */
+        .modal-overlay {
+            display: none; /* مخفية تماماً */
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6); /* خلفية معتمة */
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
 
+        /* عندما تأخذ النافذة كلاس show تظهر فوراً */
+        .modal-overlay.show {
+        display: flex; /* تظهر كصندوق مرن */
+        }
+
+        .modal-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            color: #333; /* لون النص داخل النافذة */
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
         
         body { background-color: var(--bg-light); color: var(--text-dark); display: flex; min-height: 100vh; overflow-x: hidden; }

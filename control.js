@@ -1,10 +1,10 @@
 /*************************************************
- * Firebase Imports  أوامر الاستيراد (Import Statements)، وهي المسؤولة عن ربط موقعك بخدمات Firebase (قاعدة بيانات جوجل السحابية).
+ * 1. Firebase Imports
  *************************************************/
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import {
     getFirestore, collection, addDoc, getDocs, deleteDoc,
-    updateDoc, doc, increment, arrayUnion,
+    updateDoc, doc, increment, arrayUnion, setDoc, getDoc,
     serverTimestamp, onSnapshot, query, orderBy, where
 } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import {
@@ -12,7 +12,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
 /*************************************************
- * Firebase Config  هذه المعلومات هي "إحداثيات" مشروعك. بفضل الـ apiKey والـ projectId الحقيقيين، سيعرف المتصفح أين يرسل بيانات المستثمرين الجدد وأين يبحث عن الأسهم.
+ * 2. Configuration & Styles
  *************************************************/
 const firebaseConfig = {
     apiKey: "AIzaSyCI_0-7KsqnssqkOSkNVK0FmuRokDNXriE",
@@ -27,262 +27,549 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+// حقن ستايل الإشعارات ديناميكياً
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `
+    .toast-notification {
+        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+        background: #1f2937; color: #fff; padding: 12px 24px; border-radius: 8px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 10000;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px;
+        opacity: 0; transition: all 0.3s ease; top: -50px;
+        display: flex; align-items: center; gap: 10px; min-width: 300px; justify-content: center;
+    }
+    .toast-notification.show { top: 20px; opacity: 1; }
+    .toast-success { border-bottom: 4px solid #10b981; }
+    .toast-error { border-bottom: 4px solid #ef4444; }
+    
+    /* تعطيل الزر أثناء التحميل */
+    button:disabled { opacity: 0.6; cursor: not-allowed; pointer-events: none; }
+`;
+document.head.appendChild(styleSheet);
+
 /*************************************************
- * Global State
+ * 3. Global State
  *************************************************/
 let globalTotalShares = 0;
 let marketItemsList = [];
-let profitMode = "total";
+let currentSharePrice = 0;
 
 /*************************************************
- * Auth Guard  قسم التحقق من هوية المستخدم
+ * 4. UI Helpers (الإشعارات والتحميل)
+ *************************************************/
+function showToast(message, type = 'success') {
+    const existing = document.querySelector('.toast-notification');
+    if(existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    toast.innerHTML = `<span>${type === 'success' ? '✅' : '⚠️'}</span><span>${message}</span>`;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+function setBtnLoading(btnElement, isLoading, loadingText = "جاري التنفيذ...") {
+    if (!btnElement) return;
+    if (isLoading) {
+        if(!btnElement.dataset.originalText) btnElement.dataset.originalText = btnElement.innerText;
+        btnElement.innerText = loadingText;
+        btnElement.disabled = true;
+    } else {
+        btnElement.innerText = btnElement.dataset.originalText || "تأكيد";
+        btnElement.disabled = false;
+    }
+}
+
+/*************************************************
+ * 5. Math Helpers (حسابات الأسهم الدقيقة)
+ *************************************************/
+function calculateUserShares(assets, sharePrice) {
+    const sPrice = Number(sharePrice) || 0;
+    if (sPrice <= 0) return 0;
+
+    const totalInvested = calculateTotalInvested(assets);
+    
+    // النتيجة = (سعر البقرة 1 + سعر البقرة 2 + ...) / سعر السهم
+    return totalInvested / sPrice;
+}
+
+function calculateTotalInvested(assets) {
+    if (!assets || !Array.isArray(assets)) return 0;
+    // التأكد من تحويل priceAtPurchase لرقم وجمعه لكل العناصر
+    return assets.reduce((sum, asset) => {
+        const price = Number(asset.priceAtPurchase) || 0;
+        return sum + price;
+    }, 0);
+}
+
+/*************************************************
+ * 6. Initialization & Listeners
  *************************************************/
 onAuthStateChanged(auth, (user) => {
     if (!user || user.email !== "admin33@tajer44.com") {
         location.href = "admin-login.html";
     } else {
         initApp();
+        setupEnterKeyListeners();
     }
 });
 
-window.logout = () => signOut(auth);
+function setupEnterKeyListeners() {
+    const bindEnter = (inputId, action) => {
+        const el = document.getElementById(inputId);
+        if (el) el.addEventListener("keypress", (e) => { if (e.key === "Enter") action(e); });
+    };
+    bindEnter("assetQty", window.confirmAddAsset);
+    bindEnter("newUserName", window.confirmAddUser);
+    bindEnter("newUserBalance", window.confirmAddUser);
+    bindEnter("balanceAmount", window.confirmEditBalance);
+    bindEnter("profitInput", window.executeDistribution);
+    bindEnter("manualSharePriceInput", window.saveSharePrice);
+}
 
-/*************************************************
- * Init App
- *************************************************/
 function initApp() {
 
-    /* ===== USERS ===== */
-    onSnapshot(query(collection(db, "users"), orderBy("createdAt", "desc")), snap => {
-        const tbody = document.querySelector("#usersTable tbody");
-        tbody.innerHTML = "";
+    let unsubscribeUsers = null;
 
-        let totalCap = 0;
-        let totalShares = 0;
+    // 1️⃣ مراقبة سعر السهم (المرجع)
+    onSnapshot(doc(db, "global_settings", "market_prices"), (docSnap) => {
+        if (!docSnap.exists()) return;
 
-        snap.forEach(d => {
-            const u = d.data();
-            const balance = u.balance || 0;
-            const shares = (u.assets || []).length;
+        const data = docSnap.data();
+        currentSharePrice = Number(data.cow) || 0;
 
-            totalCap += balance;
-            totalShares += shares;
-            //القسم المسئول عن بيانات المستخدمين
-            tbody.innerHTML += `
-                <tr>
-                    <td>${d.id.slice(0,6)}</td>
-                    <td>${u.name}</td>
-                    <td>${balance.toLocaleString()}</td>
-                    <td>${shares}</td>
-                    <td>
-                        <button onclick="openAssetModal('${d.id}')" class="btn btn-purple btn-sm">شراء</button>
-                        <button onclick="openBalanceModal('${d.id}')" class="btn btn-warning btn-sm">محفظة</button>
-                        <button onclick="delUser('${d.id}')" class="btn btn-danger btn-sm">حذف</button>
-                    </td>
-                </tr>
-            `;
-        });
-        //القسم المسؤول عن رصيد المستخدمين والاسهم
-        globalTotalShares = totalShares;
+        // تحديث مربع التعديل
+        const inlineInput = document.getElementById("inlineSharePrice");
+        if (inlineInput) inlineInput.value = currentSharePrice;
 
-        document.getElementById("d-users").innerText = snap.size;
-        document.getElementById("d-capital").innerText = totalCap.toLocaleString();
-        document.getElementById("d-total-shares").innerText = totalShares;
-        document.getElementById("d-share-value").innerText =
-            totalShares ? Math.floor(totalCap / totalShares).toLocaleString() : 0;
+        // تحديث العرض
+        const priceDisplay = document.getElementById("currentPriceDisplay");
+        if (priceDisplay) {
+            priceDisplay.innerText =
+                `سعر السهم الحالي: ${currentSharePrice.toLocaleString()} ل.س`;
+        }
 
-        document.getElementById("activeSharesDisplay").innerText = totalShares;
+        // 🔥 بعد ما صار السعر جاهز → حمّل المستثمرين
+        if (unsubscribeUsers) unsubscribeUsers();
+        loadInvestors();
     });
 
-    /* ===== MARKET ===== */
-    //هذا الجزء من الكود هو المسؤول عن "إدارة السوق الاستثماري". وظيفته جلب الفرص الاستثمارية (الأسهم أو الأصول) من قاعدة البيانات وعرضها في مكانين مختلفين في نفس الوقت.
+
+    // 2️⃣ تحميل المستثمرين (مرتبط بسعر السهم)
+    function loadInvestors() {
+        unsubscribeUsers = onSnapshot(
+            query(collection(db, "users"), orderBy("createdAt", "desc")),
+            snap => {
+
+                const tbody = document.querySelector("#usersTable tbody");
+                if (!tbody) return;
+                tbody.innerHTML = "";
+
+                let totalCap = 0;
+                let totalShares = 0;
+                let totalInvestors = 0;
+                let index = 1;
+
+                snap.forEach(d => {
+                    const u = d.data();
+                    const balance = Number(u.balance) || 0;
+                    const phone = u.phone || "غير مسجل";
+                    const assets = Array.isArray(u.assets) ? u.assets : [];
+
+                    if (assets.length === 0) return;
+
+                    totalInvestors++;
+
+                    // مجموع المبالغ المدفوعة
+                    const totalInvestedAmount = assets.reduce(
+                        (sum, a) => sum + (Number(a.priceAtPurchase) || 0), 0
+                    );
+
+                    // تجميع الممتلكات
+                    const assetSummary = {};
+                    assets.forEach(a => {
+                        assetSummary[a.name] = (assetSummary[a.name] || 0) + 1;
+                    });
+
+                    const propertiesText = Object.entries(assetSummary)
+                        .map(([name, qty]) => `${qty} ${name}`)
+                        .join("، ");
+
+                    // حساب الأسهم
+                    const rawShares =
+                        currentSharePrice > 0
+                            ? totalInvestedAmount / currentSharePrice
+                            : 0;
+
+                    totalShares += rawShares;
+                    totalCap += totalInvestedAmount;
+
+                    const displayShares =
+                        rawShares === 0 ? "0" :
+                        Number.isInteger(rawShares) ? rawShares :
+                        rawShares.toFixed(2);
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${index}</td>
+                            <td style="font-weight:bold;">${u.name}</td>
+                            <td>${phone}</td>
+                            <td style="color:#2563eb;">${balance.toLocaleString()} ل.س</td>
+                            <td style="font-size:0.9em;color:#4b5563;">${propertiesText}</td>
+                            <td style="font-weight:bold;color:#d97706;">
+                                ${totalInvestedAmount.toLocaleString()} ل.س
+                            </td>
+                            <td style="font-weight:bold;color:#16a34a;">
+                                ${displayShares} سهم
+                            </td>
+                            <td>
+                                <div style="display:flex;gap:5px;">
+                                    <button onclick="openAssetModal('${d.id}')" class="btn btn-purple btn-sm">شراء</button>
+                                    <button onclick="openBalanceModal('${d.id}')" class="btn btn-warning btn-sm">محفظة</button>
+                                    <button onclick="delUser('${d.id}')" class="btn btn-danger btn-sm">حذف</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    index++;
+                });
+
+                // تحديث البطاقات العلوية
+                globalTotalShares = totalShares;
+
+                if (document.getElementById("d-total-shares"))
+                    document.getElementById("d-total-shares").innerText =
+                        Number.isInteger(totalShares) ? totalShares : totalShares.toFixed(2);
+
+                if (document.getElementById("d-capital"))
+                    document.getElementById("d-capital").innerText =
+                        totalCap.toLocaleString();
+
+                if (document.getElementById("d-investors"))
+                    document.getElementById("d-investors").innerText =
+                        totalInvestors;
+            }
+        );
+    }
+
+
+    // 3️⃣ السوق (كما هو – بدون تغيير)
     onSnapshot(collection(db, "market_items"), snap => {
         const tbody = document.querySelector("#marketTable tbody");
         const select = document.getElementById("assetSelect");
-        tbody.innerHTML = "";
-        select.innerHTML = "";
+
+        if (tbody) tbody.innerHTML = "";
+        if (select) select.innerHTML = '<option value="">-- اختر المنتج --</option>';
 
         marketItemsList = [];
+        let pIndex = 1;
 
         snap.forEach(d => {
             const p = d.data();
             marketItemsList.push({ id: d.id, ...p });
 
-            tbody.innerHTML += `
-                <tr>
-                    <td>${p.name}</td>
-                    <td>${p.price.toLocaleString()}</td>
-                    <td>${p.returnRate}%</td>
-                    <td>نشط</td>
-                    <td><button onclick="delProduct('${d.id}')" class="btn btn-danger btn-sm">حذف</button></td>
-                </tr>
-            `;
+            if (tbody) {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${pIndex}</td>
+                        <td>${p.name}</td>
+                        <td>${Number(p.price).toLocaleString()}</td>
+                        <td>${p.returnRate}%</td>
+                        <td>نشط</td>
+                        <td>
+                            <button onclick="delProduct('${d.id}')" class="btn btn-danger btn-sm">
+                                حذف
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }
 
-            select.innerHTML += `<option value="${d.id}">${p.name} (${p.price})</option>`;
-        });
-    });
-
-    /* ===== WITHDRAWALS ===== */  // المسؤول عن "نظام الصرف المالي". وظيفته جلب طلبات السحب التي أرسلها المستخدمون من تطبيقهم لكي تراجعها أنت وتوافق عليها أو ترفضها.
-    onSnapshot(query(collection(db,"withdrawals"), where("status","==","pending")), snap => {
-        const tbody = document.querySelector("#withdrawalsTable tbody");
-        tbody.innerHTML = "";
-
-        snap.forEach(d => {
-            const w = d.data();
-            tbody.innerHTML += `
-                <tr>
-                    <td>${w.userName}</td>
-                    <td>${w.amount.toLocaleString()}</td>
-                    <td>${w.createdAt?.toDate().toLocaleDateString() || "-"}</td>
-                    <td>
-                        <button onclick="approveWithdraw('${d.id}','${w.userId}',${w.amount})" class="btn btn-success btn-sm">قبول</button>
-                        <button onclick="rejectWithdraw('${d.id}')" class="btn btn-danger btn-sm">رفض</button>
-                    </td>
-                </tr>
-            `;
-        });
-    });
-
-    /* ===== LOGS ===== */
-    //المراقبة المباشرة للسجلات (collection(db, "logs"))
-    //الكود يراقب مجموعة في قاعدة البيانات تسمى logs. أي عملية يقوم بها النظام (إضافة مستخدم، سحب رصيد، توزيع أرباح) يجب أن تُرسل نصاً إلى هذه المجموعة لتظهر هنا فوراً.
-    onSnapshot(query(collection(db,"logs"), orderBy("timestamp","desc")), snap => {
-        const box = document.getElementById("timelineBox");
-        box.innerHTML = "";
-        snap.forEach(d=>{
-            const l = d.data();
-            box.innerHTML += `<div class="timeline-item">${l.text}</div>`;
+            if (select) {
+                select.innerHTML += `
+                    <option value="${d.id}">
+                        ${p.name} (${Number(p.price).toLocaleString()})
+                    </option>
+                `;
+            }
+            pIndex++;
         });
     });
 }
 
-/*************************************************
- * UI Helpers  "المحرك التشغيلي" للنوافذ المنبثقة (Modals). وظيفته الأساسية هي الربط بين أزرار الجدول التي شرحناها سابقاً وبين النوافذ التي تظهر للمدير.
- *************************************************/
-window.openModal = id => document.getElementById(id).classList.add("show");
-window.closeModal = id => document.getElementById(id).classList.remove("show");
-
-window.openBalanceModal = id => {
-    document.getElementById("editUserId").value = id;
-    openModal("balanceModal");
-};
-
-window.openAssetModal = id => {
-    document.getElementById("assetUserId").value = id;
-    openModal("assetModal");
-};
 
 /*************************************************
- * Actions  "أمر التنفيذ" الأول الذي يغير البيانات فعلياً في السحاب
+ * 7. Actions (الوظائف الرئيسية)
  *************************************************/
-window.confirmAddUser = async () => {
-    const name = newUserName.value;
-    const bal = Number(newUserBalance.value || 0);
-    if (!name) return alert("أدخل الاسم");
 
-    await addDoc(collection(db,"users"), {
-        name, balance: bal, assets: [], createdAt: serverTimestamp()
-    });
-    log(`إضافة مستثمر ${name}`);
-    closeModal("userModal");
-};
-//"المحاسب المالي" للنظام، وهو المسؤول عن تنفيذ عمليات الإيداع والسحب في محافظ المستثمرين بدقة وأمان.
-window.confirmEditBalance = async () => {
-    await updateDoc(doc(db,"users",editUserId.value), {
-        balance: increment(Number(balanceAmount.value))
-    });
-    log("تعديل محفظة");
-    closeModal("balanceModal");
-};
-//المسؤول عن "توليد الملكية"، حيث يقوم بربط الأسهم المتاحة في السوق بمحفظة مستثمر معين.
-window.confirmAddAsset = async () => {
-    const uid = assetUserId.value;
-    const qty = Number(assetQty.value);
-    const item = marketItemsList.find(i=>i.id===assetSelect.value);
+// الشراء (المطور)
+window.confirmAddAsset = async (e) => {
+    // محاولة التقاط الزر سواء جاء الحدث من الضغط أو من Enter
+    let btn = e ? e.target : null;
+    if (btn && btn.tagName !== 'BUTTON') btn = document.querySelector("#assetModal .btn-purple");
+    if (!btn) btn = document.querySelector("#assetModal .btn-purple"); // Fallback
 
-    for(let i=0;i<qty;i++){
-        await updateDoc(doc(db,"users",uid),{
-            assets: arrayUnion({ name:item.name, addedAt:new Date().toISOString() })
-        });
-    }
-    log("شراء أسهم");
-    closeModal("assetModal");
-};
-//"أمر الحذف النهائي"، وهو بسيط ولكنه حساس جداً لأنه يقوم بإزالة بيانات المستثمر وكل ما يتعلق بمحفظته من قاعدة البيانات بشكل دائم.
-window.delUser = async id => {
-    if(confirm("حذف؟")){
-        await deleteDoc(doc(db,"users",id));
-        log("حذف مستخدم");
-    }
-};
-//المسؤول عن "تغذية السوق" بالفرص الاستثمارية. بفضله، تستطيع إضافة شركات أو أصول جديدة ليقوم المستثمرون (أو أنت نيابة عنهم) بشرائها
-window.addProduct = async () => {
-    await addDoc(collection(db,"market_items"),{
-        name:pName.value,
-        price:Number(pPrice.value),
-        returnRate:pReturn.value,
-        createdAt:serverTimestamp()
-    });
-    log("إضافة سهم للسوق");
-};
-//هو المسؤول عن تنظيف السوق من الأسهم القديمة أو التي لم تعد متاحة:
-window.delProduct = async id => deleteDoc(doc(db,"market_items",id));
+    const uid = document.getElementById("assetUserId").value;
+    const qtyInput = document.getElementById("assetQty");
+    const qty = Number(qtyInput.value);
+    const itemId = document.getElementById("assetSelect").value;
+    const item = marketItemsList.find(i => i.id === itemId);
 
-window.toggleProfitMode = mode => {
-    profitMode = mode;
-};
-//هذا الكود هو "حاسبة المعاينة"، ووظيفته الأساسية هي منع "مفاجآت الحسابات" للمدير. هو يقوم بعملية حسابية "افتراضية" تظهر لك النتيجة قبل أن تضغط على زر التوزيع النهائي.
-window.calculatePreview = () => {
-    const total = Number(profitInput.value);
-    if (!total || !globalTotalShares) {
-        previewText.innerText = "المبلغ لكل سهم: 0";
-        return;
-    }
-    previewText.innerText =
-        `المبلغ لكل سهم: ${Math.floor(total/globalTotalShares).toLocaleString()} ل.س`;
-};
-//"المفتاح الرئيسي" للنظام. هذه الدالة هي الأهم لأنها تقوم بالعملية الأكثر تعقيداً: توزيع الأرباح على الجميع بضغطة زر واحدة.
-window.executeDistribution = async () => {
-    if(!globalTotalShares) return alert("لا يوجد أسهم");
+    if (!item || qty <= 0) return showToast("البيانات غير مكتملة", "error");
 
-    const total = Number(profitInput.value);
-    const perShare = Math.floor(total/globalTotalShares);
+    const unitPrice = Number(item.price);
+    const totalPrice = unitPrice * qty;
 
-    const snap = await getDocs(collection(db,"users"));
-    snap.forEach(d=>{
-        const shares = (d.data().assets||[]).length;
-        if(shares){
-            updateDoc(doc(db,"users",d.id),{
-                balance: increment(shares*perShare)
+    try {
+        setBtnLoading(btn, true);
+
+        const userRef = doc(db, "users", uid);
+        const userDoc = await getDoc(userRef);
+        const userData = userDoc.data();
+
+        if (userData.balance < totalPrice) {
+            setBtnLoading(btn, false);
+            return showToast(`الرصيد غير كافٍ! (المطلوب: ${totalPrice})`, "error");
+        }
+
+        const newAssets = [];
+        for (let i = 0; i < qty; i++) {
+            newAssets.push({
+                id: crypto.randomUUID(), // 🔑 معرف فريد لكل أصل
+                name: item.name,
+                priceAtPurchase: unitPrice,
+                addedAt: new Date().toISOString()
             });
         }
-    });
 
-    log("توزيع أرباح");
-    alert("تم التوزيع");
+        await updateDoc(userRef, {
+            balance: increment(-totalPrice),
+            assets: arrayUnion(...newAssets)
+        });
+
+        showToast(`تم شراء ${qty} ${item.name} بنجاح`);
+        log(`شراء ${qty} ${item.name} للمستثمر ${userData.name}`);
+        closeModal("assetModal");
+        qtyInput.value = "1";
+
+    } catch (error) {
+        console.error(error);
+        showToast("خطأ في العملية", "error");
+    } finally {
+        setBtnLoading(btn, false);
+    }
+};
+// وظيفة تحديث سعر السهم من صفحة المستثمرين مباشرة
+window.updateInlinePrice = async (e) => {
+    const btn = e?.target;
+    const input = document.getElementById("inlineSharePrice");
+    const newVal = Number(input.value);
+
+    if (!newVal || newVal <= 0) {
+        return showToast("أدخل سعر سهم صحيح", "error");
+    }
+
+    try {
+        setBtnLoading(btn, true);
+
+        await updateDoc(
+            doc(db, "global_settings", "market_prices"),
+            {
+                cow: newVal,
+                updatedAt: serverTimestamp()
+            }
+        );
+
+        showToast("✅ تم حفظ سعر السهم بنجاح");
+
+    } catch (err) {
+        console.error(err);
+        showToast("❌ فشل حفظ السعر", "error");
+    } finally {
+        setBtnLoading(btn, false);
+    }
 };
 
-/*************************************************
- * Logger//هذا هو الكود الذي "يؤمّن" عملك كمدير. فبدون هذه الدالة، كانت كل الأوامر السابقة (مثل log("إضافة مستخدم")) ستتسبب في توقف الموقع عن العمل.
- *************************************************/
-async function log(text){
-    await addDoc(collection(db,"logs"),{text,timestamp:serverTimestamp()});
-}
+// حفظ سعر السهم من لوحة الإدارة
+window.saveSharePrice = async function () {
+    const input = document.getElementById("manualSharePriceInput");
+    if (!input) return;
 
-/*************************************************
- * Tabs //هذا الكود هو المسؤول عن جعل لوحة التحكم تبدو كـ تطبيق احترافي (Single Page Application):
- *************************************************/
+    const newPrice = Number(input.value);
+
+    if (!newPrice || newPrice <= 0) {
+        alert("❌ أدخل قيمة صحيحة لسعر السهم");
+        return;
+    }
+
+    try {
+        await updateDoc(
+            doc(db, "global_settings", "market_prices"),
+            {
+                cow: newPrice,
+                updatedAt: serverTimestamp()
+            }
+        );
+
+        // تحديث العرض فورًا
+        document.getElementById("d-share-value").innerText =
+            newPrice.toLocaleString();
+
+        closeModal("sharePriceModal");
+
+        showToast
+            ? showToast("✅ تم تحديث سعر السهم")
+            : alert("✅ تم تحديث سعر السهم");
+
+    } catch (err) {
+        console.error(err);
+        alert("❌ فشل حفظ السعر");
+    }
+};
+
+
+// توزيع الأرباح (يدعم الكسور)
+window.executeDistribution = async (e) => {
+    let btn = e ? e.target : null;
+    if (btn && btn.tagName !== 'BUTTON') btn = document.querySelector("#distributeBtn");
+
+    if (!globalTotalShares || globalTotalShares <= 0) return showToast("لا يوجد أسهم للتوزيع", "error");
+
+    const profitInput = document.getElementById("profitInput");
+    const totalProfit = Number(profitInput.value);
+
+    if (totalProfit <= 0) return showToast("أدخل مبلغ الربح", "error");
+
+    try {
+        setBtnLoading(btn, true);
+
+        // حساب حصة السهم الواحد (بدون تقريب للحفاظ على دقة الكسور)
+        const perShare = totalProfit / globalTotalShares;
+
+        const snap = await getDocs(collection(db, "users"));
+        const promises = [];
+        let count = 0;
+
+        snap.forEach(d => {
+            const u = d.data();
+            const shares = calculateUserShares(u.assets || [], currentSharePrice);
+            
+            if (shares > 0) {
+                // ضرب عدد الأسهم (حتى لو كسرية) في حصة السهم
+                const shareVal = shares * perShare;
+                // يمكن استخدام Math.floor هنا للناتج النهائي للمستخدم إذا أردت عدم تحويل قروش، لكن يفضل تركه دقيقاً
+                promises.push(updateDoc(doc(db, "users", d.id), { balance: increment(shareVal) }));
+                count++;
+            }
+        });
+
+        await Promise.all(promises);
+        
+        showToast(`تم توزيع ${totalProfit} ل.س`);
+        log(`توزيع أرباح بقيمة ${totalProfit}`);
+        closeModal("profitModal");
+        profitInput.value = "";
+
+    } catch (err) {
+        console.error(err);
+        showToast("فشل التوزيع", "error");
+    } finally {
+        setBtnLoading(btn, false);
+    }
+};
+
+// إضافة مستخدم
+window.confirmAddUser = async (e) => {
+    let btn = document.querySelector("#userModal .btn-primary");
+    const nameInp = document.getElementById("newUserName");
+    const phoneInp = document.getElementById("newUserPhone"); // تأكد من إضافة هذا الـ ID في الـ Modal
+    const balInp = document.getElementById("newUserBalance");
+
+    if (!nameInp.value) return showToast("أدخل الاسم", "error");
+
+    try {
+        setBtnLoading(btn, true);
+        await addDoc(collection(db, "users"), {
+            name: nameInp.value,
+            phone: phoneInp ? phoneInp.value : "", // حفظ رقم الجوال
+            balance: Number(balInp.value || 0),
+            assets: [],
+            createdAt: serverTimestamp()
+        });
+        showToast("تمت إضافة المستثمر بنجاح");
+        closeModal("userModal");
+        nameInp.value = ""; if(phoneInp) phoneInp.value = ""; balInp.value = "";
+    } catch (error) { 
+        showToast("خطأ في الإضافة", "error"); 
+    } finally { 
+        setBtnLoading(btn, false); 
+    }
+};
+
+// تعديل رصيد
+window.confirmEditBalance = async (e) => {
+    let btn = document.querySelector("#balanceModal .btn-warning");
+    const id = document.getElementById("editUserId").value;
+    const amount = Number(document.getElementById("balanceAmount").value);
+
+    try {
+        setBtnLoading(btn, true);
+        await updateDoc(doc(db, "users", id), { balance: increment(amount) });
+        showToast("تم تحديث الرصيد");
+        closeModal("balanceModal");
+        document.getElementById("balanceAmount").value = "";
+    } catch (err) { showToast("خطأ", "error"); }
+    finally { setBtnLoading(btn, false); }
+};
+
+// سعر السهم
+window.saveSharePrice = async (e) => {
+    let btn = document.querySelector("#sharePriceModal .btn-success");
+    const val = Number(document.getElementById("manualSharePriceInput").value);
+
+    if (val <= 0) return showToast("السعر غير صحيح", "error");
+
+    try {
+        setBtnLoading(btn, true);
+        await setDoc(doc(db, "settings", "market"), { sharePrice: val, lastUpdate: serverTimestamp() });
+        showToast("تم التحديث");
+        closeModal("sharePriceModal");
+    } catch(err) { showToast("خطأ", "error"); }
+    finally { setBtnLoading(btn, false); }
+};
+
+// دوال مساعدة
+window.delUser = async id => { if(confirm("تأكيد الحذف؟")) await deleteDoc(doc(db,"users",id)); };
+window.delProduct = async id => { if(confirm("حذف المنتج؟")) await deleteDoc(doc(db,"market_items",id)); };
+window.addProduct = async () => {
+    const n = document.getElementById("pName").value;
+    const p = document.getElementById("pPrice").value;
+    if(!n || !p) return showToast("بيانات ناقصة","error");
+    await addDoc(collection(db,"market_items"),{name:n, price:Number(p), returnRate:0, createdAt:serverTimestamp()});
+    showToast("تمت الإضافة");
+    document.getElementById("pName").value=""; document.getElementById("pPrice").value="";
+};
+async function log(text) { await addDoc(collection(db, "logs"), { text, timestamp: serverTimestamp() }); }
+
+// UI
+window.openModal = id => document.getElementById(id).classList.add("show");
+window.closeModal = id => document.getElementById(id).classList.remove("show");
+window.openBalanceModal = id => { document.getElementById("editUserId").value = id; openModal("balanceModal"); setTimeout(()=>document.getElementById("balanceAmount").focus(),100); };
+window.openAssetModal = id => { 
+    document.getElementById("assetUserId").value = id; 
+    document.getElementById("assetQty").value = "1"; 
+    openModal("assetModal"); 
+    setTimeout(()=>document.getElementById("assetQty").focus(),100); 
+};
 window.openTab = (id,btn)=>{
     document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
     document.getElementById(id).classList.add("active");
     document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
     if(btn) btn.classList.add("active");
 };
-
-window.logout = () => {
-    if(confirm("هل تريد تسجيل الخروج؟")) {
-        signOut(auth).then(() => {
-            window.location.href = "index.html";
-        });
-    }
-};
+window.logout = () => signOut(auth).then(() => location.href = "index.html");
