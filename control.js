@@ -1,19 +1,14 @@
 /*************************************************
- * 1. Firebase Imports
+ * 1. Firebase Imports & Config
  *************************************************/
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import {
     getFirestore, collection, addDoc, getDocs, deleteDoc,
     updateDoc, doc, increment, arrayUnion, setDoc, getDoc,
-    serverTimestamp, onSnapshot, query, orderBy, where
+    serverTimestamp, onSnapshot, query, orderBy, limit, writeBatch
 } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-import {
-    getAuth, onAuthStateChanged, signOut
-} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
-/*************************************************
- * 2. Configuration & Styles
- *************************************************/
 const firebaseConfig = {
     apiKey: "AIzaSyCI_0-7KsqnssqkOSkNVK0FmuRokDNXriE",
     authDomain: "tajer-app-e1b97.firebaseapp.com",
@@ -27,549 +22,716 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// حقن ستايل الإشعارات ديناميكياً
-const styleSheet = document.createElement("style");
-styleSheet.innerText = `
-    .toast-notification {
-        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-        background: #1f2937; color: #fff; padding: 12px 24px; border-radius: 8px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 10000;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px;
-        opacity: 0; transition: all 0.3s ease; top: -50px;
-        display: flex; align-items: center; gap: 10px; min-width: 300px; justify-content: center;
-    }
-    .toast-notification.show { top: 20px; opacity: 1; }
-    .toast-success { border-bottom: 4px solid #10b981; }
-    .toast-error { border-bottom: 4px solid #ef4444; }
-    
-    /* تعطيل الزر أثناء التحميل */
-    button:disabled { opacity: 0.6; cursor: not-allowed; pointer-events: none; }
-`;
-document.head.appendChild(styleSheet);
+/*************************************************
+ * 2. Helpers & Formatters (أدوات التنسيق)
+ *************************************************/
+
+const formatMoney = (num) => {
+    if (!num && num !== 0) return "0";
+    return Number(num).toLocaleString('en-US');
+};
+
+const cleanNumber = (str) => {
+    if (!str) return 0;
+    // تم تعديلها لتسمح بالإشارة السالبة (-) من أجل عمليات خصم الرصيد
+    return Number(String(str).replace(/[^0-9.-]/g, ''));
+};
+
+const attachMoneyInputListener = (inputId) => {
+    const el = document.getElementById(inputId);
+    if (!el) return;
+    el.addEventListener('input', function (e) {
+        let rawValue = this.value.replace(/[^0-9-]/g, '');
+        if (!rawValue) { this.value = ""; return; }
+        this.value = Number(rawValue).toLocaleString('en-US');
+    });
+};
 
 /*************************************************
- * 3. Global State
+ * 3. UI System (التنبيهات والنوافذ)
+ *************************************************/
+
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const box = document.createElement('div');
+    box.className = `toast-msg ${type}`;
+    box.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${message}`;
+    container.appendChild(box);
+    setTimeout(() => { box.style.opacity = '1'; box.style.transform = 'translateY(0)'; }, 10);
+    setTimeout(() => { box.style.opacity = '0'; setTimeout(() => box.remove(), 300); }, 3000);
+}
+
+// دالة التأكيد المخصصة الأصلية (مع إصلاح لضمان عمل Promise)
+function askConfirm(title, message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirmModal');
+        document.getElementById('confirmTitle').innerText = title;
+        document.getElementById('confirmMessage').innerText = message;
+        modal.classList.add('show');
+
+        const yesBtn = document.getElementById('confirmYesBtn');
+        const noBtn = document.getElementById('confirmNoBtn');
+
+        const newYes = yesBtn.cloneNode(true);
+        const newNo = noBtn.cloneNode(true);
+
+        yesBtn.parentNode.replaceChild(newYes, yesBtn);
+        noBtn.parentNode.replaceChild(newNo, noBtn);
+
+        newYes.onclick = () => {
+            modal.classList.remove('show');
+            resolve(true);
+        };
+
+        newNo.onclick = () => {
+            modal.classList.remove('show');
+            resolve(false);
+        };
+    });
+}
+
+
+function setBtnLoading(btn, isLoading) {
+    if (!btn) return;
+    if (isLoading) {
+        btn.dataset.text = btn.innerText;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المعالجة...';
+        btn.disabled = true;
+    } else {
+        btn.innerText = btn.dataset.text || 'تأكيد';
+        btn.disabled = false;
+    }
+}
+
+/*************************************************
+ * 4. Core Logic & Data
  *************************************************/
 let globalTotalShares = 0;
-let marketItemsList = [];
+let marketList = [];
 let currentSharePrice = 0;
 
-/*************************************************
- * 4. UI Helpers (الإشعارات والتحميل)
- *************************************************/
-function showToast(message, type = 'success') {
-    const existing = document.querySelector('.toast-notification');
-    if(existing) existing.remove();
-
-    const toast = document.createElement('div');
-    toast.className = `toast-notification toast-${type}`;
-    toast.innerHTML = `<span>${type === 'success' ? '✅' : '⚠️'}</span><span>${message}</span>`;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => toast.classList.add('show'), 10);
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
-
-function setBtnLoading(btnElement, isLoading, loadingText = "جاري التنفيذ...") {
-    if (!btnElement) return;
-    if (isLoading) {
-        if(!btnElement.dataset.originalText) btnElement.dataset.originalText = btnElement.innerText;
-        btnElement.innerText = loadingText;
-        btnElement.disabled = true;
-    } else {
-        btnElement.innerText = btnElement.dataset.originalText || "تأكيد";
-        btnElement.disabled = false;
-    }
-}
-
-/*************************************************
- * 5. Math Helpers (حسابات الأسهم الدقيقة)
- *************************************************/
-function calculateUserShares(assets, sharePrice) {
-    const sPrice = Number(sharePrice) || 0;
-    if (sPrice <= 0) return 0;
-
-    const totalInvested = calculateTotalInvested(assets);
-    
-    // النتيجة = (سعر البقرة 1 + سعر البقرة 2 + ...) / سعر السهم
-    return totalInvested / sPrice;
-}
-
-function calculateTotalInvested(assets) {
-    if (!assets || !Array.isArray(assets)) return 0;
-    // التأكد من تحويل priceAtPurchase لرقم وجمعه لكل العناصر
-    return assets.reduce((sum, asset) => {
-        const price = Number(asset.priceAtPurchase) || 0;
-        return sum + price;
-    }, 0);
-}
-
-/*************************************************
- * 6. Initialization & Listeners
- *************************************************/
 onAuthStateChanged(auth, (user) => {
     if (!user || user.email !== "admin33@tajer44.com") {
-        location.href = "admin-login.html";
+        window.location.href = "index.html";
     } else {
         initApp();
-        setupEnterKeyListeners();
+        setupInputs();
     }
 });
 
-function setupEnterKeyListeners() {
-    const bindEnter = (inputId, action) => {
-        const el = document.getElementById(inputId);
-        if (el) el.addEventListener("keypress", (e) => { if (e.key === "Enter") action(e); });
-    };
-    bindEnter("assetQty", window.confirmAddAsset);
-    bindEnter("newUserName", window.confirmAddUser);
-    bindEnter("newUserBalance", window.confirmAddUser);
-    bindEnter("balanceAmount", window.confirmEditBalance);
-    bindEnter("profitInput", window.executeDistribution);
-    bindEnter("manualSharePriceInput", window.saveSharePrice);
+function setupInputs() {
+    ['profitInput', 'manualSharePriceInput', 'newUserBalance', 'balanceAmount', 'pPrice', 'pQty'].forEach(id => attachMoneyInputListener(id));
+
+    const pInput = document.getElementById("profitInput");
+    if (pInput) {
+        pInput.addEventListener("input", () => {
+            const val = cleanNumber(pInput.value);
+            const hint = document.getElementById("profitPerShareHint");
+            if (val > 0 && globalTotalShares > 0) {
+                const share = val / globalTotalShares;
+                hint.innerHTML = `نصيب السهم الواحد: <strong>${share.toFixed(2)}</strong> ل.س`;
+                hint.style.display = "block";
+            } else {
+                hint.style.display = "none";
+            }
+        });
+    }
 }
 
 function initApp() {
-
-    let unsubscribeUsers = null;
-
-    // 1️⃣ مراقبة سعر السهم (المرجع)
-    onSnapshot(doc(db, "global_settings", "market_prices"), (docSnap) => {
-        if (!docSnap.exists()) return;
-
-        const data = docSnap.data();
-        currentSharePrice = Number(data.cow) || 0;
-
-        // تحديث مربع التعديل
-        const inlineInput = document.getElementById("inlineSharePrice");
-        if (inlineInput) inlineInput.value = currentSharePrice;
-
-        // تحديث العرض
-        const priceDisplay = document.getElementById("currentPriceDisplay");
-        if (priceDisplay) {
-            priceDisplay.innerText =
-                `سعر السهم الحالي: ${currentSharePrice.toLocaleString()} ل.س`;
+    onSnapshot(doc(db, "global_settings", "market_prices"), (snap) => {
+        if (snap.exists()) {
+            currentSharePrice = Number(snap.data().cow) || 0;
+            document.getElementById("d-share-value").innerText = formatMoney(currentSharePrice);
+            loadInvestors();
         }
-
-        // 🔥 بعد ما صار السعر جاهز → حمّل المستثمرين
-        if (unsubscribeUsers) unsubscribeUsers();
-        loadInvestors();
     });
 
+    loadInvestors();
+    loadMarket();
+    loadLogs();
+    loadWithdrawals(); // تم تفعيلها هنا لتعمل عند تشغيل التطبيق
+}
 
-    // 2️⃣ تحميل المستثمرين (مرتبط بسعر السهم)
-    function loadInvestors() {
-        unsubscribeUsers = onSnapshot(
-            query(collection(db, "users"), orderBy("createdAt", "desc")),
-            snap => {
+function loadInvestors() {
+    onSnapshot(query(collection(db, "users"), orderBy("createdAt", "desc")), (snap) => {
+        const table = document.querySelector("#usersTable tbody");
+        if(!table) return;
+        table.innerHTML = "";
+        
+        let totalShares = 0;
+        let totalCapital = 0;
+        let investorsCount = 0;
+        let idx = 1;
 
-                const tbody = document.querySelector("#usersTable tbody");
-                if (!tbody) return;
-                tbody.innerHTML = "";
+        snap.forEach(docSnap => {
+            investorsCount++;
+            const u = docSnap.data();
+            const assets = u.assets || [];
+            const invested = assets.reduce((sum, item) => sum + (Number(item.priceAtPurchase) || 0), 0);
+            const myShares = currentSharePrice > 0 ? (invested / currentSharePrice) : 0;
+            
+            totalShares += myShares;
+            totalCapital += invested;
 
-                let totalCap = 0;
-                let totalShares = 0;
-                let totalInvestors = 0;
-                let index = 1;
+            const assetMap = {};
+            assets.forEach(a => assetMap[a.name] = (assetMap[a.name] || 0) + 1);
+            const assetStr = Object.entries(assetMap).map(([k,v]) => `${k} (${v})`).join("، ") || "-";
 
-                snap.forEach(d => {
-                    const u = d.data();
-                    const balance = Number(u.balance) || 0;
-                    const phone = u.phone || "غير مسجل";
-                    const assets = Array.isArray(u.assets) ? u.assets : [];
+            table.innerHTML += `
+                <tr>
+                    <td>${idx++}</td>
+                    <td><strong>${u.name}</strong><br><span style="font-size:0.8em; color:#888;">${u.phone||''}</span></td>
+                    <td style="color:#2563eb; font-weight:bold;">${formatMoney(u.balance)}</td>
+                    <td style="font-size:0.85em;">${assetStr}</td>
+                    <td>${formatMoney(invested)}</td>
+                    <td style="color:#16a34a; font-weight:bold;">${myShares.toFixed(2)}</td>
+                    <td>
+                        <button class="btn-icon purple" onclick="openAssetModal('${docSnap.id}')" title="شراء"><i class="fas fa-shopping-cart"></i></button>
+                        <button class="btn-icon orange" onclick="openBalanceModal('${docSnap.id}')" title="الرصيد"><i class="fas fa-coins"></i></button>
+                        <button class="btn-icon red" onclick="deleteUser('${docSnap.id}')" title="حذف"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        });
 
-                    if (assets.length === 0) return;
+        globalTotalShares = totalShares;
+        updateText("d-users", investorsCount);
+        updateText("d-capital", formatMoney(totalCapital));
+        updateText("d-total-shares", totalShares.toFixed(2));
+        updateText("d-total-shares-preview", totalShares.toFixed(2));
+    });
+}
 
-                    totalInvestors++;
+// دالة جلب طلبات السحب مع تحديث مباشر
+async function loadWithdrawals() {
+    const container = document.getElementById('withdrawalsContainer');
+    if(!container) return;
 
-                    // مجموع المبالغ المدفوعة
-                    const totalInvestedAmount = assets.reduce(
-                        (sum, a) => sum + (Number(a.priceAtPurchase) || 0), 0
-                    );
+    onSnapshot(collection(db, "withdrawals"), (snap) => {
+        container.innerHTML = '';
+        if(snap.empty) {
+            container.innerHTML = '<p style="text-align:center; grid-column: 1/-1;">لا توجد طلبات معلقة</p>';
+            return;
+        }
 
-                    // تجميع الممتلكات
-                    const assetSummary = {};
-                    assets.forEach(a => {
-                        assetSummary[a.name] = (assetSummary[a.name] || 0) + 1;
-                    });
-
-                    const propertiesText = Object.entries(assetSummary)
-                        .map(([name, qty]) => `${qty} ${name}`)
-                        .join("، ");
-
-                    // حساب الأسهم
-                    const rawShares =
-                        currentSharePrice > 0
-                            ? totalInvestedAmount / currentSharePrice
-                            : 0;
-
-                    totalShares += rawShares;
-                    totalCap += totalInvestedAmount;
-
-                    const displayShares =
-                        rawShares === 0 ? "0" :
-                        Number.isInteger(rawShares) ? rawShares :
-                        rawShares.toFixed(2);
-
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>${index}</td>
-                            <td style="font-weight:bold;">${u.name}</td>
-                            <td>${phone}</td>
-                            <td style="color:#2563eb;">${balance.toLocaleString()} ل.س</td>
-                            <td style="font-size:0.9em;color:#4b5563;">${propertiesText}</td>
-                            <td style="font-weight:bold;color:#d97706;">
-                                ${totalInvestedAmount.toLocaleString()} ل.س
-                            </td>
-                            <td style="font-weight:bold;color:#16a34a;">
-                                ${displayShares} سهم
-                            </td>
-                            <td>
-                                <div style="display:flex;gap:5px;">
-                                    <button onclick="openAssetModal('${d.id}')" class="btn btn-purple btn-sm">شراء</button>
-                                    <button onclick="openBalanceModal('${d.id}')" class="btn btn-warning btn-sm">محفظة</button>
-                                    <button onclick="delUser('${d.id}')" class="btn btn-danger btn-sm">حذف</button>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                    index++;
-                });
-
-                // تحديث البطاقات العلوية
-                globalTotalShares = totalShares;
-
-                if (document.getElementById("d-total-shares"))
-                    document.getElementById("d-total-shares").innerText =
-                        Number.isInteger(totalShares) ? totalShares : totalShares.toFixed(2);
-
-                if (document.getElementById("d-capital"))
-                    document.getElementById("d-capital").innerText =
-                        totalCap.toLocaleString();
-
-                if (document.getElementById("d-investors"))
-                    document.getElementById("d-investors").innerText =
-                        totalInvestors;
-            }
-        );
-    }
-
-
-    // 3️⃣ السوق (كما هو – بدون تغيير)
-    onSnapshot(collection(db, "market_items"), snap => {
-        const tbody = document.querySelector("#marketTable tbody");
-        const select = document.getElementById("assetSelect");
-
-        if (tbody) tbody.innerHTML = "";
-        if (select) select.innerHTML = '<option value="">-- اختر المنتج --</option>';
-
-        marketItemsList = [];
-        let pIndex = 1;
-
-        snap.forEach(d => {
-            const p = d.data();
-            marketItemsList.push({ id: d.id, ...p });
-
-            if (tbody) {
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${pIndex}</td>
-                        <td>${p.name}</td>
-                        <td>${Number(p.price).toLocaleString()}</td>
-                        <td>${p.returnRate}%</td>
-                        <td>نشط</td>
-                        <td>
-                            <button onclick="delProduct('${d.id}')" class="btn btn-danger btn-sm">
-                                حذف
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }
-
-            if (select) {
-                select.innerHTML += `
-                    <option value="${d.id}">
-                        ${p.name} (${Number(p.price).toLocaleString()})
-                    </option>
-                `;
-            }
-            pIndex++;
+        snap.forEach(docRef => {
+            const data = docRef.data();
+            container.innerHTML += `
+                <div class="withdraw-card">
+                    <h4>${data.userName}</h4>
+                    <div class="price">${Number(data.amount).toLocaleString()} ل.س</div>
+                    <div class="date">${data.date || ''}</div>
+                    <div class="actions">
+                        <button class="btn-approve" onclick="confirmAction('قبول السحب', 'هل أنت متأكد من تحويل المبلغ؟', () => processWithdraw('${docRef.id}', true))" style="background:#dcfce7; color:#166534; padding:8px; border-radius:5px; border:none; cursor:pointer;">موافقة</button>
+                        <button class="btn-reject" onclick="confirmAction('رفض الطلب', 'هل تريد رفض هذا الطلب؟', () => processWithdraw('${docRef.id}', false))" style="background:#fee2e2; color:#991b1b; padding:8px; border-radius:5px; border:none; cursor:pointer;">رفض</button>
+                    </div>
+                </div>
+            `;
         });
     });
 }
 
+// دالة معالجة السحب (قبول أو رفض) - تمت إضافتها لتكتمل الوظيفة
+window.processWithdraw = async (reqId, isApproved) => {
+    try {
+        const docRef = doc(db, "withdrawals", reqId);
+        const snap = await getDoc(docRef);
+        if(!snap.exists()) return;
+        const reqData = snap.data();
 
+        if (isApproved) {
+            // خصم من رصيد المستخدم
+            const userRef = doc(db, "users", reqData.userId);
+            await updateDoc(userRef, { balance: increment(-reqData.amount) });
+            logAction(`موافقة سحب مبلغ ${reqData.amount} للمستخدم ${reqData.userName}`);
+            showToast("تمت الموافقة وخصم الرصيد");
+        } else {
+            logAction(`رفض طلب سحب للمستخدم ${reqData.userName}`);
+            showToast("تم رفض الطلب", "error");
+        }
+        // حذف الطلب بعد المعالجة
+        await deleteDoc(docRef);
+    } catch (e) {
+        showToast("حدث خطأ في المعالجة", "error");
+    }
+};
+
+function loadMarket() {
+    onSnapshot(collection(db, "market_items"), (snap) => {
+        const table = document.querySelector("#marketTable tbody");
+        const select = document.getElementById("assetSelect");
+        if(!table || !select) return;
+
+        table.innerHTML = "";
+        select.innerHTML = "<option value=''>-- اختر المنتج --</option>";
+        marketList = [];
+
+        snap.forEach(docSnap => {
+            const p = docSnap.data();
+            const item = { id: docSnap.id, ...p };
+            marketList.push(item);
+
+            table.innerHTML += `
+                <tr>
+                    <td>${p.name}</td>
+                    <td>${formatMoney(p.price)}</td>
+                    <td>${p.returnRate || 0}%</td>
+                    <td>${p.quantity || 0}</td>
+                    <td><span class="badge ${p.quantity > 0 ? 'bg-success' : 'bg-danger'}">${p.quantity > 0 ? 'متوفر' : 'نفذ'}</span></td>
+                    <td><button class="btn-icon red" onclick="deleteProduct('${docSnap.id}')"><i class="fas fa-trash"></i></button></td>
+                </tr>
+            `;
+            if (p.quantity > 0) {
+                select.innerHTML += `<option value="${item.id}">${p.name} - ${formatMoney(p.price)} ل.س</option>`;
+            }
+        });
+    });
+}
+
+const assetSelect = document.getElementById("assetSelect");
+const qtyInfo = document.getElementById("availableQtyInfo");
+const qtyInput = document.getElementById("assetQty");
+
+if (assetSelect) {
+    assetSelect.addEventListener("change", () => {
+        const itemId = assetSelect.value;
+        const item = marketList.find(i => i.id === itemId);
+
+        if (!item) {
+            qtyInfo.innerText = "الكمية المتوفرة: --";
+            qtyInput.max = 1;
+            qtyInput.value = 1;
+            return;
+        }
+
+        qtyInfo.innerText = `الكمية المتوفرة: ${item.quantity}`;
+        qtyInput.max = item.quantity;
+        qtyInput.value = 1;
+    });
+}
 /*************************************************
- * 7. Actions (الوظائف الرئيسية)
+ * إصلاحات منطق الشراء وتحديث الواجهة
  *************************************************/
 
-// الشراء (المطور)
-window.confirmAddAsset = async (e) => {
-    // محاولة التقاط الزر سواء جاء الحدث من الضغط أو من Enter
-    let btn = e ? e.target : null;
-    if (btn && btn.tagName !== 'BUTTON') btn = document.querySelector("#assetModal .btn-purple");
-    if (!btn) btn = document.querySelector("#assetModal .btn-purple"); // Fallback
-
-    const uid = document.getElementById("assetUserId").value;
+// 1. تحديث بيانات المنتج المختار في واجهة الشراء
+const updateProductUI = () => {
+    const assetSelect = document.getElementById("assetSelect");
+    const itemId = assetSelect.value;
+    const item = marketList.find(i => i.id === itemId);
+    const card = document.getElementById("productDetailCard");
     const qtyInput = document.getElementById("assetQty");
-    const qty = Number(qtyInput.value);
-    const itemId = document.getElementById("assetSelect").value;
-    const item = marketItemsList.find(i => i.id === itemId);
 
-    if (!item || qty <= 0) return showToast("البيانات غير مكتملة", "error");
-
-    const unitPrice = Number(item.price);
-    const totalPrice = unitPrice * qty;
-
-    try {
-        setBtnLoading(btn, true);
-
-        const userRef = doc(db, "users", uid);
-        const userDoc = await getDoc(userRef);
-        const userData = userDoc.data();
-
-        if (userData.balance < totalPrice) {
-            setBtnLoading(btn, false);
-            return showToast(`الرصيد غير كافٍ! (المطلوب: ${totalPrice})`, "error");
-        }
-
-        const newAssets = [];
-        for (let i = 0; i < qty; i++) {
-            newAssets.push({
-                id: crypto.randomUUID(), // 🔑 معرف فريد لكل أصل
-                name: item.name,
-                priceAtPurchase: unitPrice,
-                addedAt: new Date().toISOString()
-            });
-        }
-
-        await updateDoc(userRef, {
-            balance: increment(-totalPrice),
-            assets: arrayUnion(...newAssets)
-        });
-
-        showToast(`تم شراء ${qty} ${item.name} بنجاح`);
-        log(`شراء ${qty} ${item.name} للمستثمر ${userData.name}`);
-        closeModal("assetModal");
-        qtyInput.value = "1";
-
-    } catch (error) {
-        console.error(error);
-        showToast("خطأ في العملية", "error");
-    } finally {
-        setBtnLoading(btn, false);
-    }
-};
-// وظيفة تحديث سعر السهم من صفحة المستثمرين مباشرة
-window.updateInlinePrice = async (e) => {
-    const btn = e?.target;
-    const input = document.getElementById("inlineSharePrice");
-    const newVal = Number(input.value);
-
-    if (!newVal || newVal <= 0) {
-        return showToast("أدخل سعر سهم صحيح", "error");
-    }
-
-    try {
-        setBtnLoading(btn, true);
-
-        await updateDoc(
-            doc(db, "global_settings", "market_prices"),
-            {
-                cow: newVal,
-                updatedAt: serverTimestamp()
-            }
-        );
-
-        showToast("✅ تم حفظ سعر السهم بنجاح");
-
-    } catch (err) {
-        console.error(err);
-        showToast("❌ فشل حفظ السعر", "error");
-    } finally {
-        setBtnLoading(btn, false);
-    }
-};
-
-// حفظ سعر السهم من لوحة الإدارة
-window.saveSharePrice = async function () {
-    const input = document.getElementById("manualSharePriceInput");
-    if (!input) return;
-
-    const newPrice = Number(input.value);
-
-    if (!newPrice || newPrice <= 0) {
-        alert("❌ أدخل قيمة صحيحة لسعر السهم");
+    if (!item) {
+        card.style.display = "none";
         return;
     }
 
-    try {
-        await updateDoc(
-            doc(db, "global_settings", "market_prices"),
-            {
-                cow: newPrice,
-                updatedAt: serverTimestamp()
-            }
-        );
+    card.style.display = "block";
+    document.getElementById("detailPrice").innerText = formatMoney(item.price) + " ل.س";
+    document.getElementById("detailReturn").innerText = (item.returnRate || 0) + "%";
+    document.getElementById("detailStock").innerText = item.quantity || 0;
+    
+    calculateTotal();
+};
 
-        // تحديث العرض فورًا
-        document.getElementById("d-share-value").innerText =
-            newPrice.toLocaleString();
+// 2. حساب المجموع الكلي ومقارنته بالرصيد
+const calculateTotal = () => {
+    const assetSelect = document.getElementById("assetSelect");
+    const item = marketList.find(i => i.id === assetSelect.value);
+    const qty = parseInt(document.getElementById("assetQty").value) || 0;
+    const totalDisplay = document.getElementById("totalPurchasePrice");
+    const warning = document.getElementById("balanceWarning");
+    const btn = document.getElementById("confirmPurchaseBtn");
 
-        closeModal("sharePriceModal");
+    if (!item) return;
 
-        showToast
-            ? showToast("✅ تم تحديث سعر السهم")
-            : alert("✅ تم تحديث سعر السهم");
+    const total = item.price * qty;
+    totalDisplay.innerText = formatMoney(total) + " ل.س";
 
-    } catch (err) {
-        console.error(err);
-        alert("❌ فشل حفظ السعر");
+    // جلب رصيد المستخدم الحالي من السجل المفتوح
+    const currentBalance = cleanNumber(document.getElementById("currentBalanceSpan").innerText);
+    
+    if (total > currentBalance) {
+        warning.style.display = "block";
+        btn.style.opacity = "0.5";
+        btn.disabled = true;
+    } else {
+        warning.style.display = "none";
+        btn.style.opacity = "1";
+        btn.disabled = false;
     }
 };
 
+// 3. ربط الأحداث للواجهة الاحترافية
+document.getElementById("assetSelect")?.addEventListener("change", updateProductUI);
+document.getElementById("assetQty")?.addEventListener("input", calculateTotal);
 
-// توزيع الأرباح (يدعم الكسور)
-window.executeDistribution = async (e) => {
-    let btn = e ? e.target : null;
-    if (btn && btn.tagName !== 'BUTTON') btn = document.querySelector("#distributeBtn");
+// 4. دالة الشراء المطورة (التي كانت معطلة)
+// تأكد من حذف النسخ القديمة لهذه الدالة واستخدام هذه النسخة فقط
+window.confirmAddAsset = async () => {
+    const uid = document.getElementById("assetUserId").value;
+    const itemId = document.getElementById("assetSelect").value;
+    const qtyInput = document.getElementById("assetQty");
+    const qty = parseInt(qtyInput.value);
+    
+    // البحث عن المنتج في القائمة المحلية
+    const item = marketList.find(i => i.id === itemId);
 
-    if (!globalTotalShares || globalTotalShares <= 0) return showToast("لا يوجد أسهم للتوزيع", "error");
+    // 1. التحقق المبدئي
+    if (!item || isNaN(qty) || qty <= 0) {
+        return showToast("يرجى اختيار منتج وتحديد كمية صحيحة", "error");
+    }
 
-    const profitInput = document.getElementById("profitInput");
-    const totalProfit = Number(profitInput.value);
+    // ملاحظة: تأكد هل الحقل في الفايربيز اسمه quantity أم qty
+    // سأفترض أنه quantity بناءً على دالة loadMarket
+    if (item.quantity < qty) {
+        return showToast(`المخزون لا يكفي، المتوفر حالياً: ${item.quantity}`, "error");
+    }
 
-    if (totalProfit <= 0) return showToast("أدخل مبلغ الربح", "error");
+    const totalCost = item.price * qty;
+
+    // 2. نافذة التأكيد
+    const confirmed = await askConfirm(
+        "تأكيد عملية الشراء",
+        `هل أنت متأكد من شراء (${qty}) وحدة من "${item.name}"؟ \n التكلفة الإجمالية: ${formatMoney(totalCost)} ل.س`
+    );
+    
+    if (!confirmed) return;
+
+    const btn = document.getElementById("confirmPurchaseBtn");
+    setBtnLoading(btn, true);
 
     try {
-        setBtnLoading(btn, true);
-
-        // حساب حصة السهم الواحد (بدون تقريب للحفاظ على دقة الكسور)
-        const perShare = totalProfit / globalTotalShares;
-
-        const snap = await getDocs(collection(db, "users"));
-        const promises = [];
-        let count = 0;
-
-        snap.forEach(d => {
-            const u = d.data();
-            const shares = calculateUserShares(u.assets || [], currentSharePrice);
-            
-            if (shares > 0) {
-                // ضرب عدد الأسهم (حتى لو كسرية) في حصة السهم
-                const shareVal = shares * perShare;
-                // يمكن استخدام Math.floor هنا للناتج النهائي للمستخدم إذا أردت عدم تحويل قروش، لكن يفضل تركه دقيقاً
-                promises.push(updateDoc(doc(db, "users", d.id), { balance: increment(shareVal) }));
-                count++;
-            }
-        });
-
-        await Promise.all(promises);
+        const userRef = doc(db, "users", uid);
+        const userSnap = await getDoc(userRef);
         
-        showToast(`تم توزيع ${totalProfit} ل.س`);
-        log(`توزيع أرباح بقيمة ${totalProfit}`);
-        closeModal("profitModal");
-        profitInput.value = "";
+        if (!userSnap.exists()) throw new Error("المستخدم غير موجود");
+        
+        const userData = userSnap.data();
 
-    } catch (err) {
-        console.error(err);
-        showToast("فشل التوزيع", "error");
-    } finally {
-        setBtnLoading(btn, false);
-    }
-};
+        // 3. التحقق من الرصيد
+        if (userData.balance < totalCost) {
+            throw new Error("عذراً، رصيد المستثمر غير كافٍ لإتمام العملية");
+        }
 
-// إضافة مستخدم
-window.confirmAddUser = async (e) => {
-    let btn = document.querySelector("#userModal .btn-primary");
-    const nameInp = document.getElementById("newUserName");
-    const phoneInp = document.getElementById("newUserPhone"); // تأكد من إضافة هذا الـ ID في الـ Modal
-    const balInp = document.getElementById("newUserBalance");
+        const batch = writeBatch(db);
 
-    if (!nameInp.value) return showToast("أدخل الاسم", "error");
+        // تجهيز بيانات الأصول
+        const newAssets = [];
+        for (let i = 0; i < qty; i++) {
+            newAssets.push({
+                assetId: crypto.randomUUID(),
+                name: item.name,
+                priceAtPurchase: Number(item.price),
+                purchaseDate: new Date().toISOString(),
+                returnRate: item.returnRate || 0
+            });
+        }
 
-    try {
-        setBtnLoading(btn, true);
-        await addDoc(collection(db, "users"), {
-            name: nameInp.value,
-            phone: phoneInp ? phoneInp.value : "", // حفظ رقم الجوال
-            balance: Number(balInp.value || 0),
-            assets: [],
-            createdAt: serverTimestamp()
+        // 4. تنفيذ العمليات (Batch)
+        batch.update(userRef, { 
+            balance: increment(-totalCost), 
+            assets: arrayUnion(...newAssets) 
         });
-        showToast("تمت إضافة المستثمر بنجاح");
-        closeModal("userModal");
-        nameInp.value = ""; if(phoneInp) phoneInp.value = ""; balInp.value = "";
-    } catch (error) { 
-        showToast("خطأ في الإضافة", "error"); 
+
+        batch.update(doc(db, "market_items", itemId), { 
+            quantity: increment(-qty) 
+        });
+
+        batch.set(doc(collection(db, "logs")), { 
+            text: `تم شراء ${qty} من (${item.name}) للمستثمر ${userData.name}`,
+            type: 'purchase',
+            timestamp: serverTimestamp() 
+        });
+
+        await batch.commit();
+
+        showToast("تمت عملية الشراء بنجاح!");
+        closeModal("assetModal");
+        
+    } catch (e) { 
+        console.error("Purchase Error:", e);
+        showToast(e.message || "حدث خطأ أثناء التنفيذ", "error"); 
     } finally { 
         setBtnLoading(btn, false); 
     }
 };
 
-// تعديل رصيد
-window.confirmEditBalance = async (e) => {
-    let btn = document.querySelector("#balanceModal .btn-warning");
-    const id = document.getElementById("editUserId").value;
-    const amount = Number(document.getElementById("balanceAmount").value);
+// إضافة وظيفة لفتح نافذة الشراء مع جلب الرصيد
+window.openAssetModal = async (id) => {
+    const userSnap = await getDoc(doc(db, "users", id));
+    if (userSnap.exists()) {
+        document.getElementById("currentBalanceSpan").innerText = formatMoney(userSnap.data().balance) + " ل.س";
+        document.getElementById("assetUserId").value = id;
+        openModal("assetModal");
+        updateProductUI(); // لتصفير البيانات السابقة
+    }
+};
+
+function loadLogs() {
+    onSnapshot(query(collection(db, "logs"), orderBy("timestamp", "desc"), limit(50)), (snap) => {
+        const fullLogContainer = document.getElementById("logsTimeline");
+        const miniLogContainer = document.getElementById("miniLogBox");
+        if (!fullLogContainer) return;
+
+        fullLogContainer.innerHTML = "";
+        if (miniLogContainer) miniLogContainer.innerHTML = "";
+
+        let lastDate = "";
+        let count = 0;
+
+        snap.forEach(docSnap => {
+            const log = docSnap.data();
+            const dateObj = log.timestamp ? log.timestamp.toDate() : new Date();
+            const dateStr = dateObj.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const timeStr = dateObj.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
+            if (dateStr !== lastDate) {
+                fullLogContainer.innerHTML += `<div class="timeline-date">${dateStr}</div>`;
+                lastDate = dateStr;
+            }
+
+            fullLogContainer.innerHTML += `
+                <div class="timeline-item">
+                    <div class="time">${timeStr}</div>
+                    <div class="content">${log.text}</div>
+                </div>
+            `;
+
+            if (count < 4 && miniLogContainer) {
+                miniLogContainer.innerHTML += `
+                    <div style="padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9em; display:flex; justify-content:space-between;">
+                        <span style="color:#333;">${log.text}</span>
+                        <span style="color:#999; font-size:0.8em;">${timeStr}</span>
+                    </div>
+                `;
+            }
+            count++;
+        });
+    });
+}
+
+/*************************************************
+ * 5. Actions (الوظائف التنفيذية)
+ *************************************************/
+
+window.addProduct = async () => {
+    const name = document.getElementById("pName").value;
+    const price = cleanNumber(document.getElementById("pPrice").value);
+    const ret = document.getElementById("pReturn").value;
+    const qty = cleanNumber(document.getElementById("pQty").value);
+
+    if (!name || price <= 0) return showToast("يرجى إدخال اسم وسعر صحيح", "error");
+    const btn = document.querySelector("#market button");
+    setBtnLoading(btn, true);
 
     try {
-        setBtnLoading(btn, true);
-        await updateDoc(doc(db, "users", id), { balance: increment(amount) });
-        showToast("تم تحديث الرصيد");
-        closeModal("balanceModal");
-        document.getElementById("balanceAmount").value = "";
-    } catch (err) { showToast("خطأ", "error"); }
+        await addDoc(collection(db, "market_items"), {
+            name, price: Number(price), returnRate: Number(ret) || 0,
+            quantity: Number(qty) || 0, createdAt: serverTimestamp()
+        });
+        showToast("تمت إضافة المنتج للسوق");
+        document.getElementById("pName").value = "";
+        document.getElementById("pPrice").value = "";
+        document.getElementById("pReturn").value = "";
+        document.getElementById("pQty").value = "";
+        logAction(`إضافة منتج: ${name}`);
+    } catch (e) { showToast("خطأ في الإضافة", "error"); }
     finally { setBtnLoading(btn, false); }
 };
 
-// سعر السهم
-window.saveSharePrice = async (e) => {
-    let btn = document.querySelector("#sharePriceModal .btn-success");
-    const val = Number(document.getElementById("manualSharePriceInput").value);
+window.confirmAddAsset = async () => {
+    const uid = document.getElementById("assetUserId").value;
+    const itemId = document.getElementById("assetSelect").value;
+    const qtyInput = document.getElementById("assetQty");
+    const qty = Number(qtyInput.value);
+    
+    // البحث عن المنتج في القائمة المحلية
+    const item = marketList.find(i => i.id === itemId);
 
-    if (val <= 0) return showToast("السعر غير صحيح", "error");
+    // 1. التحقق المبدئي
+    if (!item || qty <= 0) return showToast("يرجى اختيار منتج وكمية صحيحة", "error");
+    if (item.qty < qty) return showToast(`المخزون لا يكفي، المتوفر: ${item.qty}`, "error");
+
+    const totalCost = item.price * qty;
+
+    // 2. نافذة تأكيد احترافية
+    const confirmed = await askConfirm(
+        "تأكيد عملية الشراء",
+        `هل أنت متأكد من شراء (${qty}) وحدة من "${item.name}"؟ \n التكلفة الإجمالية: ${formatMoney(totalCost)} ل.س`
+    );
+    if (!confirmed) return;
+
+    const btn = document.getElementById("confirmPurchaseBtn");
+    setBtnLoading(btn, true);
 
     try {
-        setBtnLoading(btn, true);
-        await setDoc(doc(db, "settings", "market"), { sharePrice: val, lastUpdate: serverTimestamp() });
+        const userRef = doc(db, "users", uid);
+        const userSnap = await getDoc(userRef);
+        const userData = userSnap.data();
+
+        // 3. التحقق من رصيد المستخدم
+        if (userData.balance < totalCost) {
+            showToast("فشل العملية: رصيد المستثمر غير كافٍ", "error");
+            setBtnLoading(btn, false);
+            return;
+        }
+
+        const batch = writeBatch(db);
+
+        // تجهيز بيانات الأصول الجديدة التي ستضاف للمستثمر
+        const newAssets = Array(qty).fill().map(() => ({
+            id: crypto.randomUUID(),
+            name: item.name,
+            priceAtPurchase: Number(item.price),
+            expectedReturn: item.return || 0, // أضفنا العائد هنا أيضاً
+            boughtAt: new Date().toISOString()
+        }));
+
+        // 4. تنفيذ العمليات (Batch) لضمان الدقة
+        // خصم الرصيد وإضافة الأصول للمستخدم
+        batch.update(userRef, { 
+            balance: increment(-totalCost), 
+            assets: arrayUnion(...newAssets) 
+        });
+
+        // خصم الكمية من المخزن (السوق)
+        batch.update(doc(db, "market_items", itemId), { 
+            qty: increment(-qty) // تأكد أن الحقل في قاعدة البيانات اسمه qty
+        });
+
+        // تسجيل العملية في السجل
+        batch.set(doc(collection(db, "logs")), { 
+            text: `تم شراء ${qty} من (${item.name}) للمستثمر ${userData.name} بمبلغ ${formatMoney(totalCost)}`,
+            type: 'purchase',
+            timestamp: serverTimestamp() 
+        });
+
+        await batch.commit();
+
+        showToast("تمت عملية الشراء بنجاح وتحديث محفظة المستثمر");
+        closeModal("assetModal");
+        
+        // إعادة تصفير الحقول
+        qtyInput.value = 1;
+        if(typeof loadInvestors === 'function') loadInvestors(); // تحديث القائمة فوراً
+
+    } catch (e) { 
+        console.error(e);
+        showToast("حدث خطأ تقني أثناء تنفيذ العملية", "error"); 
+    } finally { 
+        setBtnLoading(btn, false); 
+    }
+};
+window.executeDistribution = async () => {
+    const profitInput = document.getElementById("profitInput");
+    const totalProfit = cleanNumber(profitInput.value);
+    if (totalProfit <= 0 || globalTotalShares <= 0) return showToast("بيانات التوزيع غير صحيحة", "error");
+
+    const perShare = totalProfit / globalTotalShares;
+    const confirmed = await askConfirm("توزيع الأرباح", `توزيع ${formatMoney(totalProfit)} ل.س؟`);
+    if (!confirmed) return;
+
+    const btn = document.getElementById("distributeBtn");
+    setBtnLoading(btn, true);
+
+    try {
+        const usersSnap = await getDocs(collection(db, "users"));
+        const batch = writeBatch(db);
+        usersSnap.forEach(docSnap => {
+            const u = docSnap.data();
+            const invested = (u.assets || []).reduce((sum, a) => sum + (Number(a.priceAtPurchase)||0), 0);
+            const shares = currentSharePrice > 0 ? (invested / currentSharePrice) : 0;
+            if (shares > 0) {
+                batch.update(doc(db, "users", docSnap.id), { balance: increment(shares * perShare) });
+            }
+        });
+        batch.set(doc(collection(db, "logs")), { text: `توزيع أرباح بقيمة ${totalProfit}`, timestamp: serverTimestamp() });
+        await batch.commit();
+        showToast("تم التوزيع بنجاح");
+        profitInput.value = "";
+    } catch (e) { showToast("فشل التوزيع", "error"); }
+    finally { setBtnLoading(btn, false); }
+};
+
+window.confirmAddUser = async () => {
+    const name = document.getElementById("newUserName").value;
+    const phone = document.getElementById("newUserPhone").value;
+    const balance = cleanNumber(document.getElementById("newUserBalance").value);
+    if (!name) return showToast("الاسم مطلوب", "error");
+
+    const btn = document.querySelector("#userModal .btn-primary");
+    setBtnLoading(btn, true);
+    try {
+        await addDoc(collection(db, "users"), { name, phone, balance, assets: [], createdAt: serverTimestamp() });
+        showToast("تمت إضافة المستثمر");
+        closeModal("userModal");
+        logAction(`إضافة مستثمر: ${name}`);
+    } catch (e) { showToast("خطأ", "error"); }
+    finally { setBtnLoading(btn, false); }
+};
+
+
+window.confirmEditBalance = async () => {
+    const uid = document.getElementById("editUserId").value;
+    const rawVal = document.getElementById("balanceAmount").value.replace(/,/g, '');
+    const finalAmount = Number(rawVal);
+    if (finalAmount === 0) return showToast("أدخل المبلغ", "error");
+
+    const confirmed = await askConfirm("تعديل الرصيد", `تعديل الرصيد بقيمة ${formatMoney(finalAmount)}؟`);
+    if (!confirmed) return;
+
+    try {
+        await updateDoc(doc(db, "users", uid), { balance: increment(finalAmount) });
+        showToast("تم تحديث المحفظة");
+        closeModal("balanceModal");
+        logAction(`تعديل رصيد مستخدم بقيمة ${finalAmount}`);
+    } catch (e) { showToast("خطأ", "error"); }
+};
+
+window.deleteUser = async (id) => {
+    if (await askConfirm("حذف مستثمر", "هل أنت متأكد؟")) {
+        await deleteDoc(doc(db, "users", id));
+        showToast("تم الحذف");
+    }
+};
+
+window.deleteProduct = async (id) => {
+    if (await askConfirm("حذف منتج", "هل أنت متأكد؟")) {
+        await deleteDoc(doc(db, "market_items", id));
+        showToast("تم الحذف");
+    }
+};
+
+
+window.saveSharePrice = async () => {
+    const val = cleanNumber(document.getElementById("manualSharePriceInput").value);
+    if (val <= 0) return showToast("أدخل سعراً صحيحاً", "error");
+    if (await askConfirm("تحديث السهم", `تغيير السعر لـ ${formatMoney(val)}؟`)) {
+        await setDoc(doc(db, "global_settings", "market_prices"), { cow: val, updatedAt: serverTimestamp() });
         showToast("تم التحديث");
         closeModal("sharePriceModal");
-    } catch(err) { showToast("خطأ", "error"); }
-    finally { setBtnLoading(btn, false); }
+    }
 };
 
-// دوال مساعدة
-window.delUser = async id => { if(confirm("تأكيد الحذف؟")) await deleteDoc(doc(db,"users",id)); };
-window.delProduct = async id => { if(confirm("حذف المنتج؟")) await deleteDoc(doc(db,"market_items",id)); };
-window.addProduct = async () => {
-    const n = document.getElementById("pName").value;
-    const p = document.getElementById("pPrice").value;
-    if(!n || !p) return showToast("بيانات ناقصة","error");
-    await addDoc(collection(db,"market_items"),{name:n, price:Number(p), returnRate:0, createdAt:serverTimestamp()});
-    showToast("تمت الإضافة");
-    document.getElementById("pName").value=""; document.getElementById("pPrice").value="";
-};
-async function log(text) { await addDoc(collection(db, "logs"), { text, timestamp: serverTimestamp() }); }
+window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
 
-// UI
-window.openModal = id => document.getElementById(id).classList.add("show");
-window.closeModal = id => document.getElementById(id).classList.remove("show");
-window.openBalanceModal = id => { document.getElementById("editUserId").value = id; openModal("balanceModal"); setTimeout(()=>document.getElementById("balanceAmount").focus(),100); };
-window.openAssetModal = id => { 
-    document.getElementById("assetUserId").value = id; 
-    document.getElementById("assetQty").value = "1"; 
-    openModal("assetModal"); 
-    setTimeout(()=>document.getElementById("assetQty").focus(),100); 
-};
-window.openTab = (id,btn)=>{
-    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+async function logAction(text) {
+    try { await addDoc(collection(db, "logs"), { text, timestamp: serverTimestamp() }); } catch(e){}
+}
+function updateText(id, val) { const el = document.getElementById(id); if(el) el.innerText = val; }
+window.openModal = (id) => document.getElementById(id).classList.add("show");
+window.closeModal = (id) => document.getElementById(id).classList.remove("show");
+window.openTab = (id, btn) => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
     document.getElementById(id).classList.add("active");
-    document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
-    if(btn) btn.classList.add("active");
+    document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+    if (btn) btn.classList.add("active");
 };
-window.logout = () => signOut(auth).then(() => location.href = "index.html");
+
+
+
+window.openAssetModal = (id) => { document.getElementById("assetUserId").value = id; openModal("assetModal"); };
+window.openBalanceModal = (id) => { document.getElementById("editUserId").value = id; openModal("balanceModal"); };

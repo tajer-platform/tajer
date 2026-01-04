@@ -25,7 +25,16 @@
         .modal-overlay.show {
         display: flex; /* تظهر كصندوق مرن */
         }
-
+        .withdraw-card {
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 15px; padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); transition: 0.3s;
+        }
+        .withdraw-card:hover { transform: translateY(-5px); }
+        .withdraw-card h4 { margin-bottom: 5px; color: #1e293b; }
+        .withdraw-card .price { font-size: 1.4rem; color: #ef4444; font-weight: 800; margin: 10px 0; }
+        .withdraw-card .date { font-size: 0.8rem; color: #94a3b8; margin-bottom: 15px; }
+        .withdraw-card .actions { display: flex; gap: 10px; }
+        .withdraw-card button { flex: 1; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .modal-box {
             background: white;
             padding: 20px;
