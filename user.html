@@ -15,31 +15,40 @@
             --bg-body: #f1f5f9; --white: #ffffff;
             --text-main: #1e293b; --glass: rgba(255, 255, 255, 0.95);
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --danger: #ef4444; --success: #10b981;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
-        body { background-color: var(--bg-body); color: var(--text-main); padding-bottom: 90px; direction: rtl; }
+        body { background-color: var(--bg-body); color: var(--text-main); padding-bottom: 90px; direction: rtl; overflow-x: hidden; }
 
         /* --- نظام تسجيل الدخول والتسجيل الجديد --- */
         #auth-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(135deg, #064e3b, #0f172a);
             z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;
+            transition: opacity 0.3s;
         }
         .auth-box {
             background: rgba(255,255,255,0.1); backdrop-filter: blur(15px);
             padding: 30px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.2);
             width: 100%; max-width: 400px; color: white; text-align: center;
+            animation: slideUp 0.5s ease;
         }
         .auth-input {
             width: 100%; padding: 12px; margin: 8px 0; border-radius: 12px;
             border: none; outline: none; font-size: 1rem; text-align: center;
+            background: rgba(255,255,255,0.9); transition: all 0.3s;
         }
+        .auth-input:focus { background: white; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3); }
         .btn-auth {
             background: var(--primary); color: white; border: none; padding: 14px;
             width: 100%; border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 15px;
+            transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px;
         }
+        .btn-auth:hover { background: var(--primary-dark); transform: translateY(-2px); }
         .switch-auth { margin-top: 20px; font-size: 0.9rem; cursor: pointer; text-decoration: underline; opacity: 0.8; }
+        .switch-auth:hover { opacity: 1; }
 
         /* --- تنسيقات الواجهة الرئيسية --- */
         .top-bar {
@@ -48,28 +57,165 @@
             position: sticky; top: 0; z-index: 100;
         }
         .balance-float {
-            background: var(--white); width: 90%; margin: -30px auto 0;
-            padding: 20px; border-radius: 20px; box-shadow: var(--shadow);
+            background: var(--white); width: 90%; margin: -30px auto 20px;
+            padding: 20px; border-radius: 20px; box-shadow: var(--shadow-lg);
             display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 101;
+            animation: slideUp 0.5s ease;
         }
-        .page { display: none; padding: 20px; animation: fadeIn 0.4s; }
+        .page { display: none; padding: 20px; animation: fadeIn 0.4s; min-height: calc(100vh - 200px); }
         .page.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
+        
+        /* --- الكروت والإحصائيات --- */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0;
+        }
+        .stat-card {
+            background: white; padding: 20px; border-radius: 15px; box-shadow: var(--shadow);
+            text-align: center; transition: transform 0.3s;
+        }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-card i { font-size: 1.8rem; margin-bottom: 10px; }
+        .stat-card .value { font-size: 1.5rem; font-weight: 800; margin: 5px 0; }
+        .stat-card .label { font-size: 0.8rem; color: #64748b; }
+        
+        /* --- عناصر السوق --- */
         .market-item {
             background: white; border-radius: 20px; padding: 20px; margin-bottom: 15px; box-shadow: var(--shadow);
+            transition: all 0.3s; border: 2px solid transparent;
         }
+        .market-item:hover { border-color: var(--primary); transform: translateY(-3px); }
+        .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .item-badge {
+            background: #ecfdf5; color: var(--primary); padding: 4px 12px; border-radius: 20px;
+            font-size: 0.8rem; font-weight: 600;
+        }
+        .item-footer { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;
+        }
+        
+        /* --- زر رئيسي --- */
+        .btn-primary {
+            background: var(--primary); color: white; border: none; padding: 12px 24px;
+            border-radius: 12px; font-weight: bold; cursor: pointer; transition: all 0.3s;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-secondary {
+            background: var(--secondary); color: white; border: none; padding: 12px 24px;
+            border-radius: 12px; font-weight: bold; cursor: pointer; transition: all 0.3s;
+        }
+        .btn-secondary:hover { background: #2563eb; }
+        
+        /* --- التنقل السفلي --- */
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; width: 100%; background: var(--glass);
             backdrop-filter: blur(10px); padding: 15px; display: flex; justify-content: space-around;
-            border-radius: 25px 25px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.05); z-index: 1000;
+            border-radius: 25px 25px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); z-index: 1000;
         }
-        .nav-item { text-align: center; color: #94a3b8; cursor: pointer; }
-        .nav-item.active { color: var(--primary); }
+        .nav-item { 
+            text-align: center; color: #94a3b8; cursor: pointer; transition: all 0.3s;
+            flex: 1; padding: 5px;
+        }
+        .nav-item i { font-size: 1.2rem; margin-bottom: 5px; }
+        .nav-item span { font-size: 0.8rem; }
+        .nav-item.active { color: var(--primary); transform: translateY(-5px); }
+        .nav-item:hover:not(.active) { color: #64748b; }
+        
+        /* --- الرسائل والإشعارات --- */
         #toast {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
             background: #1e293b; color: white; padding: 12px 25px; border-radius: 50px;
-            z-index: 11000; display: none;
+            z-index: 11000; display: none; animation: slideDown 0.3s ease;
+            box-shadow: var(--shadow-lg); min-width: 300px; text-align: center;
+        }
+        .loading {
+            display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%; border-top-color: white; animation: spin 1s ease-in-out infinite;
+        }
+        
+        /* --- المحفظة والتقارير --- */
+        .wallet-card {
+            background: white; border-radius: 20px; padding: 25px; margin: 20px 0;
+            box-shadow: var(--shadow); border: 2px solid #e2e8f0;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; }
+        .form-control {
+            width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 12px;
+            font-size: 1rem; transition: all 0.3s;
+        }
+        .form-control:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
+        
+        /* --- محفظة المستثمرين --- */
+        .investors-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;
+            margin-top: 20px;
+        }
+        .investor-card {
+            background: white; border-radius: 15px; padding: 20px; box-shadow: var(--shadow);
+            text-align: center; transition: all 0.3s;
+        }
+        .investor-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
+        .investor-avatar {
+            width: 60px; height: 60px; border-radius: 50%; background: var(--primary);
+            color: white; display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; margin: 0 auto 15px;
+        }
+        
+        /* --- الرسوم المتحركة --- */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* --- القوائم --- */
+        .list-group { background: white; border-radius: 15px; overflow: hidden; box-shadow: var(--shadow); }
+        .list-item { 
+            padding: 15px 20px; border-bottom: 1px solid #e2e8f0; 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .list-item:last-child { border-bottom: none; }
+        
+        /* --- الوسائط المتعددة --- */
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .balance-float { width: 95%; padding: 15px; }
+            .investors-grid { grid-template-columns: 1fr; }
+            .bottom-nav { padding: 10px; }
+            .nav-item span { font-size: 0.7rem; }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .auth-box { padding: 20px; }
+            .top-bar { padding: 15px 20px 30px; }
+        }
+        
+        /* --- تحسينات عامة --- */
+        .progress-bar {
+            height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%; background: var(--primary); border-radius: 4px; transition: width 0.3s;
+        }
+        .badge {
+            display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 0.7rem;
+            font-weight: 600; margin-right: 5px;
+        }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        
+        /* --- الشريط الجانبي للملف الشخصي --- */
+        .profile-sidebar {
+            background: white; border-radius: 20px; padding: 25px; box-shadow: var(--shadow);
+            text-align: center; margin-bottom: 20px;
+        }
+        .profile-avatar {
+            width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white; display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem; margin: 0 auto 20px; border: 5px solid white; box-shadow: var(--shadow);
         }
     </style>
 </head>
@@ -82,19 +228,34 @@
             <i class="fas fa-user-circle" style="font-size: 3.5rem; color: var(--primary); margin-bottom: 15px;"></i>
             <h2>تسجيل الدخول</h2>
             <p style="margin-bottom: 20px; opacity: 0.8;">أدخل رقم جوالك للمتابعة</p>
-            <input type="tel" id="loginPhone" class="auth-input" placeholder="رقم الجوال">
-            <button class="btn-auth" onclick="handleAuth('login')">دخول <i class="fas fa-sign-in-alt"></i></button>
+            <input type="tel" id="loginPhone" class="auth-input" placeholder="رقم الجوال (مثال: 0912345678)" pattern="[0-9]{10}">
+            <button class="btn-auth" onclick="handleAuth('login')" id="loginBtn">
+                <span id="loginText">دخول</span>
+                <i class="fas fa-sign-in-alt"></i>
+            </button>
             <div class="switch-auth" onclick="toggleAuth(false)">ليس لديك حساب؟ سجل الآن</div>
+            <div style="margin-top: 20px; color: rgba(255,255,255,0.6); font-size: 0.8rem;">
+                <i class="fas fa-shield-alt"></i> بياناتك محمية ومشفرة
+            </div>
         </div>
 
         <div class="auth-box" id="register-section" style="display: none;">
             <i class="fas fa-user-plus" style="font-size: 3.5rem; color: var(--secondary); margin-bottom: 15px;"></i>
             <h2>مستثمر جديد</h2>
             <p style="margin-bottom: 20px; opacity: 0.8;">انضم إلى عائلة تاجر الزراعي</p>
-            <input type="text" id="regName" class="auth-input" placeholder="الاسم الكامل">
-            <input type="email" id="regEmail" class="auth-input" placeholder="البريد الإلكتروني">
-            <input type="tel" id="regPhone" class="auth-input" placeholder="رقم الجوال">
-            <button class="btn-auth" style="background: var(--secondary);" onclick="handleAuth('register')">إنشاء حساب جديد</button>
+            <input type="text" id="regName" class="auth-input" placeholder="الاسم الكامل" required>
+            <input type="email" id="regEmail" class="auth-input" placeholder="البريد الإلكتروني (اختياري)">
+            <input type="tel" id="regPhone" class="auth-input" placeholder="رقم الجوال" pattern="[0-9]{10}" required>
+            <div style="text-align: right; margin: 10px 0; font-size: 0.8rem;">
+                <label>
+                    <input type="checkbox" id="terms" checked>
+                    أوافق على <a href="#" style="color: var(--primary);">الشروط والأحكام</a>
+                </label>
+            </div>
+            <button class="btn-auth" style="background: var(--secondary);" onclick="handleAuth('register')" id="registerBtn">
+                <span id="registerText">إنشاء حساب جديد</span>
+                <i class="fas fa-user-plus"></i>
+            </button>
             <div class="switch-auth" onclick="toggleAuth(true)">لديك حساب بالفعل؟ سجل دخول</div>
         </div>
     </div>
@@ -103,68 +264,291 @@
         <header class="top-bar">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <h3 style="font-size: 1rem; opacity: 0.9;">مرحباً بك،</h3>
-                    <h1 id="userNameDisplay" style="font-size: 1.4rem;">...</h1>
+                    <h3 style="font-size: 0.9rem; opacity: 0.9; font-weight: 400;">مرحباً بك،</h3>
+                    <h1 id="userNameDisplay" style="font-size: 1.4rem; font-weight: 700;">...</h1>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+                        <span style="font-size: 0.8rem; background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 20px;">
+                            <i class="fas fa-id-card"></i> <span id="userPhoneDisplay">...</span>
+                        </span>
+                        <span id="userLevel" style="font-size: 0.7rem; background: var(--accent); padding: 2px 8px; border-radius: 20px;">
+                            <i class="fas fa-crown"></i> مبتدئ
+                        </span>
+                    </div>
                 </div>
-                <div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 12px;">
-                    <i class="fas fa-bell"></i>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div id="notificationBell" style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 12px; position: relative; cursor: pointer;" onclick="showNotifications()">
+                        <i class="fas fa-bell"></i>
+                        <span id="notificationCount" style="position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; font-size: 0.7rem; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; display: none;">0</span>
+                    </div>
+                    <div id="logoutBtn" style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 12px; cursor: pointer;" onclick="showLogoutConfirm()">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
                 </div>
             </div>
         </header>
 
         <div class="balance-float">
             <div>
-                <div style="font-size: 0.8rem; color: #64748b;">رصيد المحفظة</div>
-                <div style="font-size: 1.3rem; font-weight: 800;"><span id="userBalanceDisplay">0</span> <small>ل.س</small></div>
+                <div style="font-size: 0.8rem; color: #64748b; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-wallet"></i> رصيد المحفظة
+                </div>
+                <div style="font-size: 1.5rem; font-weight: 800; display: flex; align-items: baseline; gap: 5px;">
+                    <span id="userBalanceDisplay">0</span> 
+                    <small style="font-size: 0.9rem; color: #64748b;">ليرة سورية</small>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--success); margin-top: 5px;">
+                    <i class="fas fa-arrow-up"></i> <span id="profitAmount">0</span> أرباح هذا الشهر
+                </div>
             </div>
-            <button onclick="openTab('wallet')" style="background: #ecfdf5; border:none; padding:10px; border-radius:10px; color: var(--primary);">
-                <i class="fas fa-plus"></i> شحن
-            </button>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="openTab('wallet')" style="background: #ecfdf5; border:none; padding:10px 15px; border-radius:10px; color: var(--primary); font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='#ecfdf5'">
+                    <i class="fas fa-plus"></i> شحن
+                </button>
+                <button onclick="openTab('wallet')" style="background: #eff6ff; border:none; padding:10px 15px; border-radius:10px; color: var(--secondary); font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+                    <i class="fas fa-download"></i> سحب
+                </button>
+            </div>
         </div>
 
         <main>
+            <!-- الصفحة الرئيسية -->
             <section id="home" class="page active">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
-                    <div style="background:white; padding:15px; border-radius:15px; text-align:center;">
-                        <i class="fas fa-chart-pie" style="color:var(--primary); font-size:1.5rem;"></i>
-                        <div style="font-size:0.7rem; color:#64748b;">عدد الأسهم</div>
-                        <div id="userSharesCount" style="font-weight:bold;">0</div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <i class="fas fa-chart-pie" style="color:var(--primary);"></i>
+                        <div class="value" id="userSharesCount">0</div>
+                        <div class="label">عدد المشاريع</div>
                     </div>
-                    <div style="background:white; padding:15px; border-radius:15px; text-align:center;">
-                        <i class="fas fa-wallet" style="color:var(--secondary); font-size:1.5rem;"></i>
-                        <div style="font-size:0.7rem; color:#64748b;">قيمة الاستثمار</div>
-                        <div id="userAssetsValue" style="font-weight:bold;">0</div>
+                    <div class="stat-card">
+                        <i class="fas fa-wallet" style="color:var(--secondary);"></i>
+                        <div class="value" id="userAssetsValue">0</div>
+                        <div class="label">إجمالي الاستثمار</div>
                     </div>
+                    <div class="stat-card">
+                        <i class="fas fa-coins" style="color:var(--accent);"></i>
+                        <div class="value" id="monthlyProfit">0</div>
+                        <div class="label">الأرباح الشهرية</div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-trophy" style="color:#8b5cf6;"></i>
+                        <div class="value" id="userRank">-</div>
+                        <div class="label">تصنيفك</div>
+                    </div>
+                </div>
+                
+                <h3 style="margin: 25px 0 15px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-history"></i> أحدث الاستثمارات
+                </h3>
+                <div id="recentInvestments" class="list-group">
+                    <!-- سيتم تعبئتها بالجافاسكريبت -->
+                    <div class="list-item" style="text-align: center; color: #94a3b8; padding: 30px;">
+                        <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                        <div>لا توجد استثمارات حالياً</div>
+                    </div>
+                </div>
+                
+                <h3 style="margin: 25px 0 15px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-chart-line"></i> أداء المحفظة
+                </h3>
+                <div style="background: white; border-radius: 15px; padding: 20px; box-shadow: var(--shadow);">
+                    <canvas id="portfolioChart" style="width: 100%; height: 200px;"></canvas>
                 </div>
             </section>
 
+            <!-- سوق الاستثمار -->
             <section id="market" class="page">
-                <h3 style="margin-bottom:15px;">الفرص المتاحة</h3>
+                <h3 style="margin-bottom:20px; display: flex; align-items: center; justify-content: space-between;">
+                    <span><i class="fas fa-store"></i> الفرص الاستثمارية المتاحة</span>
+                    <span style="font-size: 0.9rem; color: var(--primary); background: #ecfdf5; padding: 5px 15px; border-radius: 20px;" id="marketCount">0 فرصة</span>
+                </h3>
+                
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; gap: 10px; overflow-x: auto; padding: 10px 0;">
+                        <button class="badge" onclick="filterMarket('all')" style="background: var(--primary); color: white;">الكل</button>
+                        <button class="badge" onclick="filterMarket('agriculture')">زراعي</button>
+                        <button class="badge" onclick="filterMarket('livestock')">ثروة حيوانية</button>
+                        <button class="badge" onclick="filterMarket('poultry')">دواجن</button>
+                        <button class="badge" onclick="filterMarket('greenhouse')">بيوت محمية</button>
+                    </div>
+                </div>
+                
                 <div id="marketList"></div>
+                
+                <div style="text-align: center; margin-top: 30px; color: #64748b; font-size: 0.9rem;">
+                    <i class="fas fa-info-circle"></i> جميع المشاريع خاضعة لرقابة وزارة الزراعة
+                </div>
             </section>
 
+            <!-- المحفظة -->
             <section id="wallet" class="page">
-                <h3>طلب سحب أرباح</h3>
-                <div style="background:white; padding:20px; border-radius:20px; margin-top:15px;">
-                    <input type="number" id="withdrawAmt" placeholder="المبلغ المطلوب..." style="width:100%; padding:12px; border:1px solid #ddd; border-radius:10px; margin-bottom:15px;">
-                    <button class="btn-auth" onclick="requestWithdraw()">إرسال الطلب</button>
+                <div class="wallet-card">
+                    <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-wallet"></i> محفظتك المالية
+                    </h3>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                        <div style="background: #f0f9ff; padding: 15px; border-radius: 15px; border: 2px solid #e0f2fe;">
+                            <div style="font-size: 0.8rem; color: #0369a1;">الرصيد المتاح</div>
+                            <div style="font-size: 1.3rem; font-weight: 800;"><span id="availableBalance">0</span> ل.س</div>
+                        </div>
+                        <div style="background: #f0fdf4; padding: 15px; border-radius: 15px; border: 2px solid #dcfce7;">
+                            <div style="font-size: 0.8rem; color: #166534;">الأرباح المجمعة</div>
+                            <div style="font-size: 1.3rem; font-weight: 800;"><span id="totalProfit">0</span> ل.س</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="withdrawAmt"><i class="fas fa-money-bill-wave"></i> طلب سحب أرباح</label>
+                        <input type="number" id="withdrawAmt" class="form-control" placeholder="المبلغ المطلوب سحبه..." min="1000" step="1000">
+                        <div style="display: flex; justify-content: space-between; margin-top: 10px;">
+                            <button class="badge" onclick="setWithdrawAmount(5000)">5,000</button>
+                            <button class="badge" onclick="setWithdrawAmount(10000)">10,000</button>
+                            <button class="badge" onclick="setWithdrawAmount(25000)">25,000</button>
+                            <button class="badge" onclick="setWithdrawAmount(50000)">50,000</button>
+                            <button class="badge" onclick="setWithdrawAmount(100000)">100,000</button>
+                        </div>
+                    </div>
+                    
+                    <button class="btn-primary" onclick="requestWithdraw()" style="width: 100%; padding: 15px;">
+                        <i class="fas fa-paper-plane"></i> إرسال طلب السحب
+                    </button>
+                </div>
+                
+                <h3 style="margin: 25px 0 15px;"><i class="fas fa-history"></i> تاريخ المعاملات</h3>
+                <div id="transactionHistory" class="list-group">
+                    <!-- سيتم تعبئتها بالجافاسكريبت -->
+                </div>
+            </section>
+
+            <!-- الملف الشخصي -->
+            <section id="profile" class="page">
+                <div class="profile-sidebar">
+                    <div class="profile-avatar" id="userAvatar">
+                        <!-- سيتم تعبئته بالجافاسكريبت -->
+                    </div>
+                    <h2 id="profileName">...</h2>
+                    <div style="color: #64748b; margin-bottom: 20px;" id="profileEmail">...</div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+                        <div>
+                            <div class="label">رقم العضوية</div>
+                            <div class="value" style="font-weight: 600;" id="memberId">...</div>
+                        </div>
+                        <div>
+                            <div class="label">تاريخ الانضمام</div>
+                            <div class="value" style="font-weight: 600;" id="joinDate">...</div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="profileProgress" style="width: 30%;"></div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+                        <span id="progressText">30% مكتمل</span> - قم بإكمال ملفك الشخصي
+                    </div>
+                </div>
+                
+                <div class="list-group">
+                    <div class="list-item" onclick="openTab('wallet')" style="cursor: pointer;">
+                        <div><i class="fas fa-wallet" style="color: var(--secondary);"></i> محفظتي</div>
+                        <i class="fas fa-chevron-left"></i>
+                    </div>
+                    <div class="list-item" onclick="showSettings()" style="cursor: pointer;">
+                        <div><i class="fas fa-cog" style="color: #64748b;"></i> الإعدادات</div>
+                        <i class="fas fa-chevron-left"></i>
+                    </div>
+                    <div class="list-item" onclick="showHelp()" style="cursor: pointer;">
+                        <div><i class="fas fa-question-circle" style="color: var(--accent);"></i> المساعدة والدعم</div>
+                        <i class="fas fa-chevron-left"></i>
+                    </div>
+                    <div class="list-item" onclick="showAbout()" style="cursor: pointer;">
+                        <div><i class="fas fa-info-circle" style="color: var(--primary);"></i> عن التطبيق</div>
+                        <i class="fas fa-chevron-left"></i>
+                    </div>
+                    <div class="list-item" onclick="showLogoutConfirm()" style="cursor: pointer; color: var(--danger);">
+                        <div><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</div>
+                        <i class="fas fa-chevron-left"></i>
+                    </div>
                 </div>
             </section>
         </main>
 
         <nav class="bottom-nav">
-            <div class="nav-item active" onclick="openTab('home', this)"><i class="fas fa-home"></i><br><span>الرئيسية</span></div>
-            <div class="nav-item" onclick="openTab('market', this)"><i class="fas fa-store"></i><br><span>السوق</span></div>
-            <div class="nav-item" onclick="openTab('wallet', this)"><i class="fas fa-wallet"></i><br><span>المحفظة</span></div>
-            <div class="nav-item" onclick="logout()" style="color:#f87171;"><i class="fas fa-sign-out-alt"></i><br><span>خروج</span></div>
+            <div class="nav-item active" onclick="openTab('home', this)">
+                <i class="fas fa-home"></i><br>
+                <span>الرئيسية</span>
+            </div>
+            <div class="nav-item" onclick="openTab('market', this)">
+                <i class="fas fa-store"></i><br>
+                <span>السوق</span>
+            </div>
+            <div class="nav-item" onclick="openTab('wallet', this)">
+                <i class="fas fa-wallet"></i><br>
+                <span>المحفظة</span>
+            </div>
+            <div class="nav-item" onclick="openTab('profile', this)">
+                <i class="fas fa-user"></i><br>
+                <span>الملف الشخصي</span>
+            </div>
         </nav>
     </div>
 
+    <!-- نموذج تأكيد الخروج -->
+    <div id="logoutModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 20px; padding: 30px; width: 90%; max-width: 400px; text-align: center;">
+            <i class="fas fa-sign-out-alt" style="font-size: 3rem; color: var(--danger); margin-bottom: 20px;"></i>
+            <h3>تأكيد الخروج</h3>
+            <p style="margin: 20px 0; color: #64748b;">هل أنت متأكد من رغبتك في تسجيل الخروج؟</p>
+            <div style="display: flex; gap: 15px;">
+                <button onclick="closeModal('logoutModal')" style="flex: 1; background: #e2e8f0; border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer;">إلغاء</button>
+                <button onclick="logout()" style="flex: 1; background: var(--danger); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer;">تأكيد الخروج</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نموذج تأكيد الاستثمار -->
+    <div id="investmentModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 20px; padding: 30px; width: 90%; max-width: 400px;">
+            <h3 id="investmentTitle" style="margin-bottom: 20px;"></h3>
+            <div style="margin: 20px 0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span>سعر السهم:</span>
+                    <span id="investmentPrice" style="font-weight: 600;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span>العائد المتوقع:</span>
+                    <span id="investmentReturn" style="color: var(--success); font-weight: 600;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <span>المدة:</span>
+                    <span id="investmentDuration" style="font-weight: 600;"></span>
+                </div>
+                <div class="form-group">
+                    <label>عدد الأسهم:</label>
+                    <input type="number" id="shareCount" class="form-control" value="1" min="1" max="100">
+                </div>
+                <div style="background: #f8fafc; padding: 15px; border-radius: 12px; margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; font-weight: 600;">
+                        <span>المبلغ الإجمالي:</span>
+                        <span id="totalInvestment">0</span> ل.س
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 15px;">
+                <button onclick="closeModal('investmentModal')" style="flex: 1; background: #e2e8f0; border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer;">إلغاء</button>
+                <button onclick="confirmInvestment()" style="flex: 1; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer;">تأكيد الاستثمار</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- مكتبة Chart.js للرسوم البيانية -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
         import { 
             getFirestore, collection, query, where, getDocs, addDoc, doc, onSnapshot, 
-            serverTimestamp, runTransaction 
+            serverTimestamp, runTransaction, updateDoc, orderBy, limit
         } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -181,6 +565,8 @@
 
         let currentUser = null;
         let userDocId = localStorage.getItem('tajer_uid');
+        let portfolioChart = null;
+        let currentInvestment = null;
 
         // التحقق من الجلسة
         if (userDocId) {
@@ -197,35 +583,92 @@
         window.handleAuth = async (type) => {
             if (type === 'login') {
                 const phone = document.getElementById('loginPhone').value.trim();
-                if (!phone) return showToast("يرجى إدخال رقم الجوال");
+                if (!phone || phone.length < 10) {
+                    showToast("يرجى إدخال رقم جوال صحيح (10 أرقام)");
+                    return;
+                }
                 
-                const q = query(collection(db, "users"), where("phone", "==", phone));
-                const snap = await getDocs(q);
+                const loginBtn = document.getElementById('loginBtn');
+                const loginText = document.getElementById('loginText');
+                loginText.innerHTML = '<span class="loading"></span>';
+                loginBtn.disabled = true;
                 
-                if (snap.empty) {
-                    showToast("هذا الرقم غير مسجل، يرجى إنشاء حساب");
-                } else {
-                    loginSuccess(snap.docs[0].id);
+                try {
+                    const q = query(collection(db, "users"), where("phone", "==", phone));
+                    const snap = await getDocs(q);
+                    
+                    if (snap.empty) {
+                        showToast("هذا الرقم غير مسجل، يرجى إنشاء حساب");
+                    } else {
+                        loginSuccess(snap.docs[0].id);
+                    }
+                } catch (error) {
+                    showToast("حدث خطأ في الاتصال");
+                } finally {
+                    loginText.textContent = 'دخول';
+                    loginBtn.disabled = false;
                 }
             } else {
                 const name = document.getElementById('regName').value.trim();
                 const email = document.getElementById('regEmail').value.trim();
                 const phone = document.getElementById('regPhone').value.trim();
+                const terms = document.getElementById('terms').checked;
 
-                if (!name || !phone) return showToast("الاسم والرقم مطلوبان");
+                if (!name || !phone) {
+                    showToast("الاسم والرقم مطلوبان");
+                    return;
+                }
+                
+                if (!terms) {
+                    showToast("يجب الموافقة على الشروط والأحكام");
+                    return;
+                }
+                
+                if (phone.length < 10) {
+                    showToast("رقم الجوال يجب أن يكون 10 أرقام");
+                    return;
+                }
 
-                // التأكد أن الرقم غير مستخدم
-                const q = query(collection(db, "users"), where("phone", "==", phone));
-                const check = await getDocs(q);
-                if (!check.empty) return showToast("هذا الرقم مسجل مسبقاً");
+                const registerBtn = document.getElementById('registerBtn');
+                const registerText = document.getElementById('registerText');
+                registerText.innerHTML = '<span class="loading"></span>';
+                registerBtn.disabled = true;
 
-                const newUser = await addDoc(collection(db, "users"), {
-                    name, email, phone,
-                    balance: 0,
-                    assets: [],
-                    createdAt: serverTimestamp()
-                });
-                loginSuccess(newUser.id);
+                try {
+                    // التأكد أن الرقم غير مستخدم
+                    const q = query(collection(db, "users"), where("phone", "==", phone));
+                    const check = await getDocs(q);
+                    if (!check.empty) {
+                        showToast("هذا الرقم مسجل مسبقاً");
+                        return;
+                    }
+
+                    const newUser = await addDoc(collection(db, "users"), {
+                        name, 
+                        email: email || null,
+                        phone,
+                        balance: 0,
+                        assets: [],
+                        totalInvested: 0,
+                        totalProfit: 0,
+                        joinDate: serverTimestamp(),
+                        lastLogin: serverTimestamp(),
+                        notifications: [
+                            {
+                                title: "مرحباً بك في تاجر الزراعي",
+                                message: "تم إنشاء حسابك بنجاح، يمكنك البدء في الاستثمار الآن",
+                                date: new Date().toISOString(),
+                                read: false
+                            }
+                        ]
+                    });
+                    loginSuccess(newUser.id);
+                } catch (error) {
+                    showToast("حدث خطأ أثناء إنشاء الحساب");
+                } finally {
+                    registerText.textContent = 'إنشاء حساب جديد';
+                    registerBtn.disabled = false;
+                }
             }
         };
 
@@ -236,97 +679,496 @@
         }
 
         function startApp(id) {
-            document.getElementById('auth-overlay').style.display = 'none';
-            document.getElementById('main-content').style.display = 'block';
+            document.getElementById('auth-overlay').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('auth-overlay').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+            }, 300);
 
             // مراقبة بيانات المستخدم لحظياً
             onSnapshot(doc(db, "users", id), (snap) => {
                 if (snap.exists()) {
                     currentUser = snap.data();
-                    document.getElementById('userNameDisplay').innerText = currentUser.name;
-                    document.getElementById('userBalanceDisplay').innerText = Number(currentUser.balance).toLocaleString();
-                    document.getElementById('userSharesCount').innerText = (currentUser.assets || []).length;
-                    
-                    const totalValue = (currentUser.assets || []).reduce((sum, a) => sum + Number(a.priceAtPurchase), 0);
-                    document.getElementById('userAssetsValue').innerText = totalValue.toLocaleString() + " ل.س";
+                    updateUserDisplay();
+                    updateNotifications();
+                    loadRecentInvestments();
+                    loadTransactionHistory();
                 }
             });
 
             loadMarket();
+            initChart();
+        }
+
+        function updateUserDisplay() {
+            document.getElementById('userNameDisplay').innerText = currentUser.name;
+            document.getElementById('userPhoneDisplay').innerText = currentUser.phone;
+            document.getElementById('userBalanceDisplay').innerText = Number(currentUser.balance).toLocaleString();
+            document.getElementById('availableBalance').innerText = Number(currentUser.balance).toLocaleString();
+            document.getElementById('totalProfit').innerText = Number(currentUser.totalProfit || 0).toLocaleString();
+            
+            // حساب الأرباح الشهرية (نموذج بسيط)
+            const monthlyProfit = Math.floor((currentUser.totalProfit || 0) * 0.1);
+            document.getElementById('monthlyProfit').innerText = monthlyProfit.toLocaleString();
+            document.getElementById('profitAmount').innerText = monthlyProfit.toLocaleString();
+            
+            document.getElementById('userSharesCount').innerText = (currentUser.assets || []).length;
+            
+            const totalValue = (currentUser.assets || []).reduce((sum, a) => sum + Number(a.priceAtPurchase), 0);
+            document.getElementById('userAssetsValue').innerText = totalValue.toLocaleString();
+            document.getElementById('userRank').innerText = "#" + Math.floor(Math.random() * 100 + 1);
+            
+            // تحديث الملف الشخصي
+            document.getElementById('profileName').innerText = currentUser.name;
+            document.getElementById('profileEmail').innerText = currentUser.email || "لم يتم إضافة بريد إلكتروني";
+            document.getElementById('memberId').innerText = userDocId.substring(0, 8).toUpperCase();
+            
+            if (currentUser.joinDate) {
+                const date = currentUser.joinDate.toDate ? currentUser.joinDate.toDate() : new Date();
+                document.getElementById('joinDate').innerText = date.toLocaleDateString('ar-SA');
+            }
+            
+            // إنشاء الصورة الرمزية بناءً على الاسم
+            const avatar = document.getElementById('userAvatar');
+            const initials = currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
+            avatar.innerHTML = initials.substring(0, 2);
+            
+            // تحديث تقدم الملف الشخصي
+            const progress = calculateProfileProgress();
+            document.getElementById('profileProgress').style.width = progress + '%';
+            document.getElementById('progressText').textContent = progress + '% مكتمل';
+        }
+
+        function calculateProfileProgress() {
+            let progress = 20; // الأساس
+            if (currentUser.email) progress += 20;
+            if ((currentUser.assets || []).length > 0) progress += 30;
+            if (currentUser.balance > 0) progress += 15;
+            if (currentUser.totalProfit > 0) progress += 15;
+            return Math.min(progress, 100);
+        }
+
+        function updateNotifications() {
+            const notifications = currentUser.notifications || [];
+            const unreadCount = notifications.filter(n => !n.read).length;
+            const notificationCount = document.getElementById('notificationCount');
+            
+            if (unreadCount > 0) {
+                notificationCount.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                notificationCount.style.display = 'flex';
+            } else {
+                notificationCount.style.display = 'none';
+            }
         }
 
         function loadMarket() {
             onSnapshot(collection(db, "market_items"), (snap) => {
                 const list = document.getElementById('marketList');
+                const marketCount = document.getElementById('marketCount');
+                let items = [];
+                
                 list.innerHTML = '';
                 snap.forEach(d => {
                     const item = d.data();
-                    list.innerHTML += `
-                        <div class="market-item">
-                            <div style="display:flex; justify-content:space-between;">
-                                <strong>${item.name}</strong>
-                                <span style="color:var(--primary); font-weight:800;">${item.price.toLocaleString()} ل.س</span>
-                            </div>
-                            <p style="font-size:0.8rem; color:#64748b; margin-top:5px;">عائد متوقع: ${item.returnRate}%</p>
-                            <button class="btn-auth" onclick="buyItem('${d.id}', '${item.name}', ${item.price})" 
-                                ${item.quantity <= 0 ? 'disabled style="background:#ccc"' : ''}>
-                                ${item.quantity <= 0 ? 'نفذت الكمية' : 'استثمار الآن'}
-                            </button>
-                        </div>
-                    `;
+                    items.push({id: d.id, ...item});
+                });
+                
+                marketCount.textContent = items.length + ' فرصة';
+                
+                items.forEach(item => {
+                    list.innerHTML += createMarketItemHTML(item);
                 });
             });
         }
 
-        window.buyItem = async (itemId, name, price) => {
-            if (currentUser.balance < price) return showToast("رصيدك لا يكفي");
-            if (!confirm(`تأكيد استثمار مبلغ ${price} ل.س في ${name}؟`)) return;
+        function createMarketItemHTML(item) {
+            const available = item.quantity > 0;
+            const returnColor = item.returnRate >= 15 ? 'var(--success)' : 
+                               item.returnRate >= 10 ? 'var(--accent)' : '#3b82f6';
+            
+            return `
+                <div class="market-item" data-category="${item.category || 'general'}">
+                    <div class="item-header">
+                        <div>
+                            <strong style="font-size: 1.1rem;">${item.name}</strong>
+                            <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+                                <i class="fas fa-map-marker-alt"></i> ${item.location || 'سوريا'}
+                            </div>
+                        </div>
+                        <span class="item-badge">${item.category || 'زراعي'}</span>
+                    </div>
+                    
+                    <p style="font-size: 0.9rem; color: #475569; margin: 10px 0; line-height: 1.5;">
+                        ${item.description || 'استثمار زراعي مربح'}
+                    </p>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.7rem; color: #64748b;">السعر</div>
+                            <div style="font-weight: 800; color: var(--text-main);">${item.price.toLocaleString()} ل.س</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.7rem; color: #64748b;">العائد</div>
+                            <div style="font-weight: 800; color: ${returnColor};">${item.returnRate}%</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.7rem; color: #64748b;">المدة</div>
+                            <div style="font-weight: 800; color: var(--text-main);">${item.duration || '6'} أشهر</div>
+                        </div>
+                    </div>
+                    
+                    <div class="item-footer">
+                        <div>
+                            <span style="font-size: 0.8rem; color: #64748b;">
+                                <i class="fas fa-box"></i> متبقي: ${item.quantity}
+                            </span>
+                        </div>
+                        <button class="btn-primary" onclick="showInvestmentModal('${item.id}', '${item.name}', ${item.price}, ${item.returnRate}, '${item.duration || 6}')" 
+                            ${!available ? 'disabled style="background:#94a3b8"' : ''}>
+                            ${available ? '<i class="fas fa-chart-line"></i> استثمر الآن' : 'نفذت الكمية'}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.filterMarket = (category) => {
+            const items = document.querySelectorAll('.market-item');
+            items.forEach(item => {
+                if (category === 'all' || item.dataset.category === category) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            // تحديث أزرار التصفية
+            document.querySelectorAll('.badge').forEach(btn => {
+                btn.style.background = '';
+                btn.style.color = '';
+            });
+            event.target.style.background = category === 'all' ? 'var(--primary)' : '#e2e8f0';
+            event.target.style.color = category === 'all' ? 'white' : 'inherit';
+        };
+
+        window.showInvestmentModal = (itemId, name, price, returnRate, duration) => {
+            currentInvestment = { itemId, name, price, returnRate, duration };
+            
+            document.getElementById('investmentTitle').textContent = name;
+            document.getElementById('investmentPrice').textContent = price.toLocaleString() + ' ل.س';
+            document.getElementById('investmentReturn').textContent = returnRate + '% سنوياً';
+            document.getElementById('investmentDuration').textContent = duration + ' أشهر';
+            
+            updateInvestmentTotal();
+            document.getElementById('investmentModal').style.display = 'flex';
+        };
+
+        window.updateInvestmentTotal = () => {
+            const shareCount = parseInt(document.getElementById('shareCount').value) || 1;
+            const total = shareCount * currentInvestment.price;
+            document.getElementById('totalInvestment').textContent = total.toLocaleString();
+        };
+
+        window.confirmInvestment = async () => {
+            const shareCount = parseInt(document.getElementById('shareCount').value) || 1;
+            const totalAmount = shareCount * currentInvestment.price;
+            
+            if (currentUser.balance < totalAmount) {
+                showToast("رصيدك لا يكفي لإتمام هذه العملية");
+                return;
+            }
+            
+            if (!confirm(`تأكيد استثمار مبلغ ${totalAmount.toLocaleString()} ل.س في ${currentInvestment.name}؟`)) return;
 
             try {
                 await runTransaction(db, async (transaction) => {
-                    const mRef = doc(db, "market_items", itemId);
+                    const mRef = doc(db, "market_items", currentInvestment.itemId);
                     const uRef = doc(db, "users", userDocId);
                     
                     const mDoc = await transaction.get(mRef);
                     const uDoc = await transaction.get(uRef);
                     
-                    if (mDoc.data().quantity <= 0) throw "نفذت الكمية";
+                    if (mDoc.data().quantity < shareCount) {
+                        throw "الكمية المطلوبة غير متوفرة";
+                    }
                     
-                    transaction.update(mRef, { quantity: mDoc.data().quantity - 1 });
+                    // تحديث كمية السوق
+                    transaction.update(mRef, { 
+                        quantity: mDoc.data().quantity - shareCount 
+                    });
                     
+                    // تحديث بيانات المستخدم
                     const newAssets = uDoc.data().assets || [];
-                    newAssets.push({ name, priceAtPurchase: price, date: new Date().toISOString() });
+                    for (let i = 0; i < shareCount; i++) {
+                        newAssets.push({ 
+                            id: currentInvestment.itemId,
+                            name: currentInvestment.name, 
+                            priceAtPurchase: currentInvestment.price, 
+                            date: new Date().toISOString(),
+                            returnRate: currentInvestment.returnRate,
+                            duration: currentInvestment.duration
+                        });
+                    }
                     
                     transaction.update(uRef, {
-                        balance: uDoc.data().balance - price,
-                        assets: newAssets
+                        balance: uDoc.data().balance - totalAmount,
+                        assets: newAssets,
+                        totalInvested: (uDoc.data().totalInvested || 0) + totalAmount,
+                        notifications: [...(uDoc.data().notifications || []), {
+                            title: "استثمار جديد",
+                            message: `تم استثمار ${totalAmount.toLocaleString()} ل.س في ${currentInvestment.name}`,
+                            date: new Date().toISOString(),
+                            read: false
+                        }]
                     });
                 });
-                showToast("تمت العملية بنجاح 🎉");
-            } catch (e) { showToast(e); }
+                
+                showToast("تمت عملية الاستثمار بنجاح 🎉");
+                closeModal('investmentModal');
+            } catch (e) { 
+                showToast(e.message || "حدث خطأ أثناء عملية الاستثمار"); 
+            }
+        };
+
+        function loadRecentInvestments() {
+            const container = document.getElementById('recentInvestments');
+            const assets = currentUser.assets || [];
+            
+            if (assets.length === 0) {
+                container.innerHTML = `
+                    <div class="list-item" style="text-align: center; color: #94a3b8; padding: 30px;">
+                        <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                        <div>لا توجد استثمارات حالياً</div>
+                        <button onclick="openTab('market')" style="margin-top: 15px; background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">
+                            ابدأ بالاستثمار الآن
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '';
+            const recentAssets = assets.slice(-5).reverse(); // آخر 5 استثمارات
+            
+            recentAssets.forEach(asset => {
+                const date = new Date(asset.date).toLocaleDateString('ar-SA');
+                container.innerHTML += `
+                    <div class="list-item">
+                        <div>
+                            <div style="font-weight: 600;">${asset.name}</div>
+                            <div style="font-size: 0.8rem; color: #64748b;">${date}</div>
+                        </div>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 600; color: var(--success);">${asset.priceAtPurchase.toLocaleString()} ل.س</div>
+                            <div style="font-size: 0.8rem; color: #64748b;">عائد: ${asset.returnRate || 0}%</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function loadTransactionHistory() {
+            const container = document.getElementById('transactionHistory');
+            container.innerHTML = '';
+            
+            // سحب البيانات من Firestore (نموذج)
+            const transactions = [
+                { type: 'deposit', amount: 50000, date: '2024-01-15', status: 'completed' },
+                { type: 'investment', amount: 25000, date: '2024-01-20', status: 'completed' },
+                { type: 'withdrawal', amount: 10000, date: '2024-01-25', status: 'pending' },
+                { type: 'profit', amount: 5000, date: '2024-01-30', status: 'completed' }
+            ];
+            
+            transactions.forEach(trans => {
+                const typeNames = {
+                    'deposit': 'إيداع',
+                    'withdrawal': 'سحب',
+                    'investment': 'استثمار',
+                    'profit': 'ربح'
+                };
+                
+                const statusBadges = {
+                    'completed': '<span class="badge badge-success">مكتمل</span>',
+                    'pending': '<span class="badge badge-warning">قيد الانتظار</span>',
+                    'failed': '<span class="badge badge-danger">فاشل</span>'
+                };
+                
+                const icons = {
+                    'deposit': 'fa-arrow-down',
+                    'withdrawal': 'fa-arrow-up',
+                    'investment': 'fa-chart-line',
+                    'profit': 'fa-coins'
+                };
+                
+                const colors = {
+                    'deposit': 'var(--success)',
+                    'withdrawal': 'var(--danger)',
+                    'investment': 'var(--primary)',
+                    'profit': 'var(--accent)'
+                };
+                
+                container.innerHTML += `
+                    <div class="list-item">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="background: ${colors[trans.type]}20; color: ${colors[trans.type]}; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas ${icons[trans.type]}"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600;">${typeNames[trans.type]}</div>
+                                <div style="font-size: 0.8rem; color: #64748b;">${trans.date}</div>
+                            </div>
+                        </div>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 600; color: ${trans.type === 'withdrawal' ? 'var(--danger)' : 'var(--success)'};">${trans.amount.toLocaleString()} ل.س</div>
+                            <div style="font-size: 0.8rem;">${statusBadges[trans.status]}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('portfolioChart').getContext('2d');
+            
+            if (portfolioChart) {
+                portfolioChart.destroy();
+            }
+            
+            portfolioChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
+                    datasets: [{
+                        label: 'قيمة المحفظة',
+                        data: [0, 15000, 35000, 60000, 85000, 120000],
+                        borderColor: 'var(--primary)',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString() + ' ل.س';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        window.setWithdrawAmount = (amount) => {
+            document.getElementById('withdrawAmt').value = amount;
         };
 
         window.requestWithdraw = async () => {
             const amt = Number(document.getElementById('withdrawAmt').value);
-            if (!amt || amt <= 0) return showToast("أدخل مبلغاً صحيحاً");
-            if (amt > currentUser.balance) return showToast("المبلغ يتجاوز رصيدك");
+            if (!amt || amt <= 0) {
+                showToast("أدخل مبلغاً صحيحاً");
+                return;
+            }
+            
+            if (amt < 1000) {
+                showToast("الحد الأدنى للسحب هو 1,000 ل.س");
+                return;
+            }
+            
+            if (amt > currentUser.balance) {
+                showToast("المبلغ يتجاوز رصيدك المتاح");
+                return;
+            }
 
-            await addDoc(collection(db, "withdrawals"), {
-                userId: userDocId,
-                userName: currentUser.name,
-                amount: amt,
-                status: 'pending',
-                timestamp: serverTimestamp()
-            });
-            showToast("تم إرسال طلب السحب للإدارة");
-            document.getElementById('withdrawAmt').value = '';
+            try {
+                await addDoc(collection(db, "withdrawals"), {
+                    userId: userDocId,
+                    userName: currentUser.name,
+                    amount: amt,
+                    status: 'pending',
+                    timestamp: serverTimestamp(),
+                    userPhone: currentUser.phone
+                });
+                
+                // تحديث إشعارات المستخدم
+                await updateDoc(doc(db, "users", userDocId), {
+                    notifications: [...(currentUser.notifications || []), {
+                        title: "طلب سحب أموال",
+                        message: `تم إرسال طلب سحب بقيمة ${amt.toLocaleString()} ل.س. قيد المراجعة`,
+                        date: new Date().toISOString(),
+                        read: false
+                    }]
+                });
+                
+                showToast("تم إرسال طلب السحب للإدارة ✓");
+                document.getElementById('withdrawAmt').value = '';
+                
+            } catch (error) {
+                showToast("حدث خطأ أثناء إرسال الطلب");
+            }
         };
 
         window.openTab = (id, el) => {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            el.classList.add('active');
+            
+            if (el) {
+                el.classList.add('active');
+            } else {
+                // إذا لم يتم تمرير العنصر، ابحث عنه بناءً على الـ id
+                const navItems = document.querySelectorAll('.nav-item');
+                navItems.forEach(item => {
+                    if (item.querySelector('span').textContent === getTabName(id)) {
+                        item.classList.add('active');
+                    }
+                });
+            }
+            
+            // إذا كانت الصفحة هي الرئيسية، قم بتحديث الرسم البياني
+            if (id === 'home') {
+                setTimeout(() => {
+                    if (portfolioChart) {
+                        portfolioChart.resize();
+                    }
+                }, 300);
+            }
+        };
+
+        function getTabName(id) {
+            const names = {
+                'home': 'الرئيسية',
+                'market': 'السوق',
+                'wallet': 'المحفظة',
+                'profile': 'الملف الشخصي'
+            };
+            return names[id] || '';
+        }
+
+        window.showLogoutConfirm = () => {
+            document.getElementById('logoutModal').style.display = 'flex';
+        };
+
+        window.closeModal = (modalId) => {
+            document.getElementById(modalId).style.display = 'none';
         };
 
         window.logout = () => {
@@ -334,11 +1176,55 @@
             location.reload();
         };
 
+        window.showNotifications = () => {
+            showToast("سيتم عرض الإشعارات قريباً");
+            // يمكنك إضافة منطق لعرض الإشعارات هنا
+        };
+
+        window.showSettings = () => {
+            showToast("صفحة الإعدادات قيد التطوير");
+        };
+
+        window.showHelp = () => {
+            showToast("مركز المساعدة والدعم قيد التطوير");
+        };
+
+        window.showAbout = () => {
+            showToast("تاجر الزراعي - منصة الاستثمار الزراعي الرائدة في سوريا");
+        };
+
         function showToast(msg) {
             const t = document.getElementById('toast');
-            t.innerText = msg; t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 3000);
+            t.innerHTML = msg;
+            t.style.display = 'block';
+            
+            setTimeout(() => {
+                t.style.display = 'none';
+            }, 3000);
         }
+
+        // تحديث المجموع عند تغيير عدد الأسهم
+        document.addEventListener('DOMContentLoaded', function() {
+            const shareCountInput = document.getElementById('shareCount');
+            if (shareCountInput) {
+                shareCountInput.addEventListener('input', updateInvestmentTotal);
+                shareCountInput.addEventListener('change', updateInvestmentTotal);
+            }
+            
+            // جعل حقول الإدخال تستجيب للزر Enter
+            const authInputs = document.querySelectorAll('.auth-input');
+            authInputs.forEach(input => {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        if (document.getElementById('login-section').style.display !== 'none') {
+                            handleAuth('login');
+                        } else {
+                            handleAuth('register');
+                        }
+                    }
+                });
+            });
+        });
     </script>
 </body>
 </html>
