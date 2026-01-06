@@ -120,6 +120,9 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
+
+
+
 function setupInputs() {
     ['profitInput', 'manualSharePriceInput', 'newUserBalance', 'balanceAmount', 'pPrice', 'pQty'].forEach(id => attachMoneyInputListener(id));
 
@@ -155,11 +158,16 @@ function initApp() {
 }
 
 function loadInvestors() {
-    onSnapshot(query(collection(db, "users"), orderBy("createdAt", "desc")), (snap) => {
+    // نستخدم onSnapshot لمراقبة التغييرات فورياً
+    // نستخدم orderBy لترتيب المستثمرين حسب تاريخ الانضمام (كما في الكود البسيط)
+    const q = query(collection(db, "users"), orderBy("joinDate", "desc"));
+
+    onSnapshot(q, (snap) => {
         const table = document.querySelector("#usersTable tbody");
-        if(!table) return;
-        table.innerHTML = "";
-        
+        if (!table) return;
+
+        table.innerHTML = ""; // تفريغ الجدول لبدء الرسم من جديد
+
         let totalShares = 0;
         let totalCapital = 0;
         let investorsCount = 0;
@@ -168,42 +176,57 @@ function loadInvestors() {
         snap.forEach(docSnap => {
             investorsCount++;
             const u = docSnap.data();
+
+            // 1. جلب البيانات بالمسميات البسيطة (اسم، بريد، هاتف، تاريخ)
+            const name = u.name || "مستخدم جديد";
+            const phone = u.phone || "---";
+            const email = u.email || "لم يتم إضافة بريد";
+            
+            // معالجة تاريخ الانضمام (من الكود البسيط)
+            let dateStr = "غير مسجل";
+            if (u.joinDate) {
+                // إذا كان التاريخ مخزن كـ Timestamp في فايربيس
+                dateStr = new Date(u.joinDate.toDate()).toLocaleDateString('ar-SA');
+            }
+
+            // 2. حسابات الاستثمار (الوظائف المتقدمة)
             const assets = u.assets || [];
             const invested = assets.reduce((sum, item) => sum + (Number(item.priceAtPurchase) || 0), 0);
-            const myShares = currentSharePrice > 0 ? (invested / currentSharePrice) : 0;
             
+            // حساب الأسهم بناءً على سعر السهم الحالي (currentSharePrice)
+            const price = (typeof currentSharePrice !== 'undefined' && currentSharePrice > 0) ? currentSharePrice : 1;
+            const myShares = invested / price;
+
             totalShares += myShares;
             totalCapital += invested;
 
+            // 3. تجميع الممتلكات لنص واحد (مثال: بقرة (2))
             const assetMap = {};
             assets.forEach(a => assetMap[a.name] = (assetMap[a.name] || 0) + 1);
-            const assetStr = Object.entries(assetMap).map(([k,v]) => `${k} (${v})`).join("، ") || "-";
+            const assetStr = Object.entries(assetMap).map(([k, v]) => `${k} (${v})`).join("، ") || "-";
 
+            // 4. عرض البيانات في الجدول (مطابق تماماً لـ HTML الخاص بك)
             table.innerHTML += `
                 <tr>
-                    <td>${idx++}</td>
-                    <td><strong>${u.name}</strong><br><span style="font-size:0.8em; color:#888;">${u.phone||''}</span></td>
-                    <td style="color:#2563eb; font-weight:bold;">${formatMoney(u.balance)}</td>
-                    <td style="font-size:0.85em;">${assetStr}</td>
-                    <td>${formatMoney(invested)}</td>
-                    <td style="color:#16a34a; font-weight:bold;">${myShares.toFixed(2)}</td>
-                    <td>
+                    <td>${idx++}</td> <td>
+                        <strong>${name}</strong><br>
+                        <span style="font-size:0.8em; color:#666;">${phone}</span><br>
+                        <span style="font-size:0.75em; color:#999;">${email}</span><br>
+                        <small style="color:#aaa;">انضم في: ${dateStr}</small>
+                    </td> <td style="color:#2563eb; font-weight:bold;">${formatMoney(u.balance || 0)}</td> <td style="font-size:0.85em;">${assetStr}</td> <td>${formatMoney(invested)}</td> <td style="color:#16a34a; font-weight:bold;">${myShares.toFixed(2)}</td> <td>
                         <button class="btn-icon purple" onclick="openAssetModal('${docSnap.id}')" title="شراء"><i class="fas fa-shopping-cart"></i></button>
                         <button class="btn-icon orange" onclick="openBalanceModal('${docSnap.id}')" title="الرصيد"><i class="fas fa-coins"></i></button>
                         <button class="btn-icon red" onclick="deleteUser('${docSnap.id}')" title="حذف"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>
+                    </td> </tr>
             `;
         });
 
-        globalTotalShares = totalShares;
+        // تحديث أرقام الإحصائيات في أعلى الصفحة
         updateText("d-users", investorsCount);
         updateText("d-capital", formatMoney(totalCapital));
         updateText("d-total-shares", totalShares.toFixed(2));
-        updateText("d-total-shares-preview", totalShares.toFixed(2));
     });
 }
-
 // دالة جلب طلبات السحب مع تحديث مباشر
 async function loadWithdrawals() {
     const container = document.getElementById('withdrawalsContainer');

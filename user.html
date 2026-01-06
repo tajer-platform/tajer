@@ -29,6 +29,91 @@
             z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;
             transition: opacity 0.3s;
         }
+        
+        .market-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 10px 0;
+        }
+        
+
+        /* تنسيق زر الاستثمار داخل البطاقة */
+        .btn-invest-mini {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+
+     
+        .market-image-container {
+            width: 100%;
+            height: 180px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .market-image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        @media (min-width: 768px) {
+            #marketItems {
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); /* للكمبيوتر: 3 أو 4 بطاقات */
+            }
+        }
+
+        
+        .market-content {
+            padding: 15px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .market-title {
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        .market-info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .market-price {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .btn-invest {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-invest:hover {
+            background: var(--primary-dark);
+        }        
         .auth-box {
             background: rgba(255,255,255,0.1); backdrop-filter: blur(15px);
             padding: 30px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.2);
@@ -52,9 +137,23 @@
 
         /* --- تنسيقات الواجهة الرئيسية --- */
         .top-bar {
-            background: linear-gradient(135deg, #064e3b 0%, #10b981 100%);
-            color: white; padding: 20px 25px 40px; border-radius: 0 0 30px 30px; box-shadow: var(--shadow);
-            position: sticky; top: 0; z-index: 100;
+            background: var(--primary); /* أو اللون الذي تفضله */
+            color: white;
+            padding: 15px 20px;
+            position: fixed; /* تغيير جوهري: تثبيت الهيدر في قمة الشاشة دائماً */
+            top: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            z-index: 1000; /* لضمان ظهوره فوق كل العناصر */
+            height: 90px; /* تحديد ارتفاع ثابت يمنع التذبذب */
+            display: block;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        /* هذا السطر هو الأهم: يضيف مسافة فارغة تحت الهيدر الثابت لكي لا يغطي محتوى الصفحة */
+        body {
+            padding-top: 100px !important; 
         }
         .balance-float {
             background: var(--white); width: 90%; margin: -30px auto 20px;
@@ -79,16 +178,81 @@
         .stat-card .label { font-size: 0.8rem; color: #64748b; }
         
         /* --- عناصر السوق --- */
+      
+
+         /* ابحث عن #marketList وقم بتعديله لهذا الشكل المطور */
+        #marketList {
+            display: grid;
+            /* الجوال: بطاقتين بعرض 160px | الكمبيوتر: يتوزع تلقائياً */
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
+            gap: 12px;
+            padding: 10px;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            #marketList {
+                /* الشاشات الكبيرة: 4 بطاقات أو أكثر */
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 20px;
+            }
+        }
+
+        /* تأكد أن الـ market-item يملك هذا التنسيق لضمان تساوي الطول */
         .market-item {
-            background: white; border-radius: 20px; padding: 20px; margin-bottom: 15px; box-shadow: var(--shadow);
-            transition: all 0.3s; border: 2px solid transparent;
+            background: var(--white);
+            border-radius: 20px;
+            padding: 15px;
+            border: 1px solid #eef2f6;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* هذا يضع الزر دائماً في الأسفل */
+            height: 100%; 
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow);
         }
-        .market-item:hover { border-color: var(--primary); transform: translateY(-3px); }
-        .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-        .item-badge {
-            background: #ecfdf5; color: var(--primary); padding: 4px 12px; border-radius: 20px;
-            font-size: 0.8rem; font-weight: 600;
+
+        .market-item:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
         }
+
+        /* زر الاستثمار داخل البطاقة */
+        .btn-invest-mini {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+            width: 100%;
+        }
+
+        .btn-invest-mini:hover {
+            background: var(--primary-dark);
+        }
+        /* تأثير الطيران عند اللمس */
+        .market-item:hover {
+            transform: translateY(-12px) rotateX(6deg) !important;
+            box-shadow: 0 20px 30px rgba(16, 185, 129, 0.2) !important;
+            border-color: var(--primary) !important;
+        }
+
+        /* شبكة البيانات المصغرة داخل البطاقة */
+        .item-data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            background: #f8fafc;
+            padding: 8px;
+            border-radius: 12px;
+            margin: 10px 0;
+        }        
         .item-footer { 
             display: flex; justify-content: space-between; align-items: center; 
             margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;
@@ -262,7 +426,7 @@
 
     <div id="main-content" style="display: none;">
         <header class="top-bar">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <h3 style="font-size: 0.9rem; opacity: 0.9; font-weight: 400;">مرحباً بك،</h3>
                     <h1 id="userNameDisplay" style="font-size: 1.4rem; font-weight: 700;">...</h1>
@@ -347,12 +511,7 @@
                     </div>
                 </div>
                 
-                <h3 style="margin: 25px 0 15px; display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-chart-line"></i> أداء المحفظة
-                </h3>
-                <div style="background: white; border-radius: 15px; padding: 20px; box-shadow: var(--shadow);">
-                    <canvas id="portfolioChart" style="width: 100%; height: 200px;"></canvas>
-                </div>
+               
             </section>
 
             <!-- سوق الاستثمار -->
@@ -362,20 +521,12 @@
                     <span style="font-size: 0.9rem; color: var(--primary); background: #ecfdf5; padding: 5px 15px; border-radius: 20px;" id="marketCount">0 فرصة</span>
                 </h3>
                 
-                <div style="margin-bottom: 20px;">
-                    <div style="display: flex; gap: 10px; overflow-x: auto; padding: 10px 0;">
-                        <button class="badge" onclick="filterMarket('all')" style="background: var(--primary); color: white;">الكل</button>
-                        <button class="badge" onclick="filterMarket('agriculture')">زراعي</button>
-                        <button class="badge" onclick="filterMarket('livestock')">ثروة حيوانية</button>
-                        <button class="badge" onclick="filterMarket('poultry')">دواجن</button>
-                        <button class="badge" onclick="filterMarket('greenhouse')">بيوت محمية</button>
-                    </div>
-                </div>
+                
                 
                 <div id="marketList"></div>
                 
                 <div style="text-align: center; margin-top: 30px; color: #64748b; font-size: 0.9rem;">
-                    <i class="fas fa-info-circle"></i> جميع المشاريع خاضعة لرقابة وزارة الزراعة
+                    <i class="fas fa-info-circle"></i> جميع المشاريع خاضعة لرقابة الله عز وجل
                 </div>
             </section>
 
@@ -400,13 +551,7 @@
                     <div class="form-group">
                         <label for="withdrawAmt"><i class="fas fa-money-bill-wave"></i> طلب سحب أرباح</label>
                         <input type="number" id="withdrawAmt" class="form-control" placeholder="المبلغ المطلوب سحبه..." min="1000" step="1000">
-                        <div style="display: flex; justify-content: space-between; margin-top: 10px;">
-                            <button class="badge" onclick="setWithdrawAmount(5000)">5,000</button>
-                            <button class="badge" onclick="setWithdrawAmount(10000)">10,000</button>
-                            <button class="badge" onclick="setWithdrawAmount(25000)">25,000</button>
-                            <button class="badge" onclick="setWithdrawAmount(50000)">50,000</button>
-                            <button class="badge" onclick="setWithdrawAmount(100000)">100,000</button>
-                        </div>
+                        
                     </div>
                     
                     <button class="btn-primary" onclick="requestWithdraw()" style="width: 100%; padding: 15px;">
@@ -520,7 +665,7 @@
                     <span id="investmentReturn" style="color: var(--success); font-weight: 600;"></span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                    <span>المدة:</span>
+                    <span>المتاح حالياً:</span>
                     <span id="investmentDuration" style="font-weight: 600;"></span>
                 </div>
                 <div class="form-group">
@@ -542,7 +687,7 @@
     </div>
 
     <!-- مكتبة Chart.js للرسوم البيانية -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
@@ -550,7 +695,64 @@
             getFirestore, collection, query, where, getDocs, addDoc, doc, onSnapshot, 
             serverTimestamp, runTransaction, updateDoc, orderBy, limit
         } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        
+        // تأكد من استيراد الأدوات اللازمة في بداية السكريبت
+        import { setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
+        // هذه الدالة هي المسؤولة عن الربط
+        async function handleAuth(type) {
+            const db = getFirestore();
+            const auth = getAuth();
+
+            if (type === 'register') {
+                // سحب البيانات من الحقول التي صممتها في HTML
+                const name = document.getElementById('regName').value;
+                const phone = document.getElementById('regPhone').value;
+                const password = document.getElementById('regPassword')?.value || "123456"; // تأكد من وجود ID بهذا الاسم
+
+                // إنشاء إيميل وهمي لأن Firebase Auth يتطلب إيميل
+                const email = phone + "@tajer.com"; 
+
+                try {
+                    // 1. إنشاء الحساب في نظام الحماية (Auth)
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    const user = userCredential.user;
+
+                    // 2. الربط السحري: تخزين البيانات في مجموعة users ليراها الأدمن فوراً
+                    await setDoc(doc(db, "users", user.uid), {
+                        uid: user.uid,
+                        name: name,
+                        phone: phone,
+                        email: email,
+                        password: password, // حفظها هنا ليتمكن الأدمن من رؤيتها في جدول الإدارة
+                        balance: 0,         // رصيد افتراضي
+                        assets: [],         // محفظة فارغة
+                        createdAt: serverTimestamp()
+                    });
+
+                    alert("تم تسجيلك بنجاح! يمكن للأدمن الآن رؤية حسابك.");
+                    showSection('dashboard'); // تحويل المستخدم للوحة التحكم الخاصة به
+                } catch (error) {
+                    console.error("خطأ:", error);
+                    alert("فشل التسجيل: " + error.message);
+                }
+                
+                // 1. قبل البدء بالتحديث، احفظ مكان السكرول
+                const scrollPos = window.scrollY; 
+
+                // ... هنا كود التحديث الخاص بك (innerHTML = ...)
+
+                // 2. بعد التحديث مباشرة، أعد السكرول لمكانه
+                window.scrollTo(0, scrollPos);
+            }
+        }
+
+        // جعل الدالة متاحة عالمياً للأزرار في HTML
+        window.handleAuth = handleAuth;
+        
+        
+        
         const firebaseConfig = {
             apiKey: "AIzaSyCI_0-7KsqnssqkOSkNVK0FmuRokDNXriE",
             authDomain: "tajer-app-e1b97.firebaseapp.com",
@@ -565,7 +767,7 @@
 
         let currentUser = null;
         let userDocId = localStorage.getItem('tajer_uid');
-        let portfolioChart = null;
+       
         let currentInvestment = null;
 
         // التحقق من الجلسة
@@ -587,24 +789,28 @@
                     showToast("يرجى إدخال رقم جوال صحيح (10 أرقام)");
                     return;
                 }
-                
+
                 const loginBtn = document.getElementById('loginBtn');
                 const loginText = document.getElementById('loginText');
-                loginText.innerHTML = '<span class="loading"></span>';
+                loginText.innerHTML = '<span class="loading"></span> جاري التحقق...';
                 loginBtn.disabled = true;
-                
+
                 try {
                     const q = query(collection(db, "users"), where("phone", "==", phone));
                     const snap = await getDocs(q);
-                    
+
                     if (snap.empty) {
                         showToast("هذا الرقم غير مسجل، يرجى إنشاء حساب");
+                        loginText.textContent = 'دخول';
+                        loginBtn.disabled = false;
                     } else {
+                        // حفظ المعرف في المتصفح قبل الانتقال
+                        localStorage.setItem('tajer_uid', snap.docs[0].id);
                         loginSuccess(snap.docs[0].id);
                     }
                 } catch (error) {
-                    showToast("حدث خطأ في الاتصال");
-                } finally {
+                    console.error(error);
+                    showToast("حدث خطأ في الاتصال بقاعدة البيانات");
                     loginText.textContent = 'دخول';
                     loginBtn.disabled = false;
                 }
@@ -618,12 +824,10 @@
                     showToast("الاسم والرقم مطلوبان");
                     return;
                 }
-                
                 if (!terms) {
                     showToast("يجب الموافقة على الشروط والأحكام");
                     return;
                 }
-                
                 if (phone.length < 10) {
                     showToast("رقم الجوال يجب أن يكون 10 أرقام");
                     return;
@@ -631,20 +835,23 @@
 
                 const registerBtn = document.getElementById('registerBtn');
                 const registerText = document.getElementById('registerText');
-                registerText.innerHTML = '<span class="loading"></span>';
+                registerText.innerHTML = '<span class="loading"></span> جاري الحفظ...';
                 registerBtn.disabled = true;
 
                 try {
-                    // التأكد أن الرقم غير مستخدم
+                    // 1. التأكد أن الرقم غير مستخدم
                     const q = query(collection(db, "users"), where("phone", "==", phone));
                     const check = await getDocs(q);
                     if (!check.empty) {
                         showToast("هذا الرقم مسجل مسبقاً");
+                        registerText.textContent = 'إنشاء حساب جديد';
+                        registerBtn.disabled = false;
                         return;
                     }
 
-                    const newUser = await addDoc(collection(db, "users"), {
-                        name, 
+                    // 2. إنشاء الحساب الجديد
+                    const newUserDoc = {
+                        name,
                         email: email || null,
                         phone,
                         balance: 0,
@@ -653,25 +860,68 @@
                         totalProfit: 0,
                         joinDate: serverTimestamp(),
                         lastLogin: serverTimestamp(),
-                        notifications: [
-                            {
-                                title: "مرحباً بك في تاجر الزراعي",
-                                message: "تم إنشاء حسابك بنجاح، يمكنك البدء في الاستثمار الآن",
-                                date: new Date().toISOString(),
-                                read: false
-                            }
-                        ]
-                    });
-                    loginSuccess(newUser.id);
+                        notifications: [{
+                            title: "مرحباً بك في تاجر الزراعي",
+                            message: "تم إنشاء حسابك بنجاح، يمكنك البدء في الاستثمار الآن",
+                            date: new Date().toISOString(),
+                            read: false
+                        }]
+                    };
+
+                    const docRef = await addDoc(collection(db, "users"), newUserDoc);
+
+                    // 3. النجاح: حفظ المعرف والانتقال
+                    if (docRef.id) {
+                        localStorage.setItem('tajer_uid', docRef.id);
+                        loginSuccess(docRef.id);
+                    }
                 } catch (error) {
-                    showToast("حدث خطأ أثناء إنشاء الحساب");
-                } finally {
+                    console.error("Registration Error:", error);
+                    showToast("حدث خطأ أثناء إنشاء الحساب، تأكد من اتصالك");
                     registerText.textContent = 'إنشاء حساب جديد';
                     registerBtn.disabled = false;
                 }
             }
         };
 
+        
+        async function buyProduct(productName, price) {
+            if (!currentUser) {
+                alert("يرجى تسجيل الدخول أولاً");
+                return;
+            }
+
+            // 1. فحص الرصيد
+            if (currentUser.balance < price) {
+                alert("رصيدك غير كافٍ لإتمام عملية الشراء");
+                return;
+            }
+
+            if (confirm(`هل تريد تأكيد شراء ${productName} بمبلغ ${price} ل.س؟`)) {
+                try {
+                    const userRef = doc(db, "users", userDocId);
+                    const newBalance = currentUser.balance - price;
+
+                    // 2. تحديث البيانات في فايربيس
+                    await updateDoc(userRef, {
+                        balance: newBalance,
+                        // إضافة المنتج الجديد إلى مصفوفة الأصول (Assets)
+                        assets: arrayUnion({
+                            name: productName,
+                            priceAtPurchase: price,
+                            date: new Date()
+                        })
+                    });
+
+                    alert("تم الشراء بنجاح!");
+                    // التحديث سيظهر تلقائياً بفضل onSnapshot
+                } catch (error) {
+                    console.error("خطأ في عملية الشراء:", error);
+                    alert("حدث خطأ أثناء الشراء، حاول مجدداً");
+                }
+            }
+        }        
+        
         function loginSuccess(id) {
             localStorage.setItem('tajer_uid', id);
             userDocId = id;
@@ -697,7 +947,7 @@
             });
 
             loadMarket();
-            initChart();
+           
         }
 
         function updateUserDisplay() {
@@ -781,88 +1031,112 @@
             });
         }
 
-        function createMarketItemHTML(item) {
+         function createMarketItemHTML(item) {
             const available = item.quantity > 0;
-            const returnColor = item.returnRate >= 15 ? 'var(--success)' : 
-                               item.returnRate >= 10 ? 'var(--accent)' : '#3b82f6';
-            
+            const returnColor = item.returnRate >= 15 ? '#10b981' : '#3b82f6';
+
             return `
-                <div class="market-item" data-category="${item.category || 'general'}">
-                    <div class="item-header">
-                        <div>
-                            <strong style="font-size: 1.1rem;">${item.name}</strong>
-                            <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
-                                <i class="fas fa-map-marker-alt"></i> ${item.location || 'سوريا'}
-                            </div>
+                <div class="market-item">
+                    <div style="flex-grow: 1;">
+                        <div style="font-size: 0.65rem; font-weight: 800; color: var(--primary); background: #ecfdf5; display: inline-block; padding: 2px 10px; border-radius: 20px; margin-bottom: 8px;">
+                            ${item.category || 'استثمار'}
                         </div>
-                        <span class="item-badge">${item.category || 'زراعي'}</span>
-                    </div>
-                    
-                    <p style="font-size: 0.9rem; color: #475569; margin: 10px 0; line-height: 1.5;">
-                        ${item.description || 'استثمار زراعي مربح'}
-                    </p>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0;">
-                        <div style="text-align: center;">
-                            <div style="font-size: 0.7rem; color: #64748b;">السعر</div>
-                            <div style="font-weight: 800; color: var(--text-main);">${item.price.toLocaleString()} ل.س</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 0.7rem; color: #64748b;">العائد</div>
-                            <div style="font-weight: 800; color: ${returnColor};">${item.returnRate}%</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 0.7rem; color: #64748b;">المدة</div>
-                            <div style="font-weight: 800; color: var(--text-main);">${item.duration || '6'} أشهر</div>
-                        </div>
-                    </div>
-                    
-                    <div class="item-footer">
-                        <div>
-                            <span style="font-size: 0.8rem; color: #64748b;">
-                                <i class="fas fa-box"></i> متبقي: ${item.quantity}
+
+                        <strong style="display: block; font-size: 0.9rem; color: #1e293b; line-height: 1.4; margin-bottom: 10px; min-height: 2.8em;">
+                            ${item.name}
+                        </strong>
+
+                        <div style="margin-bottom: 12px;">
+                            <span style="font-size: 0.7rem; color: #94a3b8; display: block;">سعر السهم</span>
+                            <span style="font-size: 1.1rem; font-weight: 800; color: var(--text-main);">
+                                ${Number(item.price).toLocaleString()} <small style="font-size: 0.7rem;">ل.س</small>
                             </span>
                         </div>
-                        <button class="btn-primary" onclick="showInvestmentModal('${item.id}', '${item.name}', ${item.price}, ${item.returnRate}, '${item.duration || 6}')" 
-                            ${!available ? 'disabled style="background:#94a3b8"' : ''}>
-                            ${available ? '<i class="fas fa-chart-line"></i> استثمر الآن' : 'نفذت الكمية'}
-                        </button>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; background: #f8fafc; padding: 8px; border-radius: 12px; margin-bottom: 10px; text-align: center;">
+                            <div style="border-left: 1px solid #e2e8f0;">
+                                <div style="font-size: 0.6rem; color: #64748b;">العائد التقديري</div>
+                                <div style="font-weight: 800; font-size: 0.85rem; color: ${returnColor};">${item.returnRate}%</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.6rem; color: #64748b;">الأسهم المتاحة</div>
+                                <div style="font-weight: 800; font-size: 0.85rem; color: ${item.quantity < 10 ? '#ef4444' : '#1e293b'};">
+                                    ${item.quantity} سهم
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
+                    <button class="btn-invest-mini" 
+                        onclick="showInvestmentModal('${item.id}', '${item.name}', ${item.price}, ${item.returnRate}, ${item.quantity})"
+                        ${!available ? 'disabled style="background:#cbd5e1;"' : ''}>
+                        ${available ? '<i class="fas fa-rocket"></i> استثمر الآن' : 'مباع بالكامل'}
+                    </button>
                 </div>
             `;
         }
 
-        window.filterMarket = (category) => {
-            const items = document.querySelectorAll('.market-item');
-            items.forEach(item => {
-                if (category === 'all' || item.dataset.category === category) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-            
-            // تحديث أزرار التصفية
-            document.querySelectorAll('.badge').forEach(btn => {
-                btn.style.background = '';
-                btn.style.color = '';
-            });
-            event.target.style.background = category === 'all' ? 'var(--primary)' : '#e2e8f0';
-            event.target.style.color = category === 'all' ? 'white' : 'inherit';
-        };
+      
 
-        window.showInvestmentModal = (itemId, name, price, returnRate, duration) => {
-            currentInvestment = { itemId, name, price, returnRate, duration };
-            
+        window.showInvestmentModal = (itemId, name, price, returnRate, quantity) => {
+            // تخزين البيانات في المتغير الحالي لتستخدم عند التأكيد
+            currentInvestment = { itemId, name, price, returnRate, quantity };
+
             document.getElementById('investmentTitle').textContent = name;
             document.getElementById('investmentPrice').textContent = price.toLocaleString() + ' ل.س';
             document.getElementById('investmentReturn').textContent = returnRate + '% سنوياً';
-            document.getElementById('investmentDuration').textContent = duration + ' أشهر';
-            
+
+            // عرض الكمية المتاحة وتغيير لونها للأحمر إذا كانت قليلة
+            const durationEl = document.getElementById('investmentDuration');
+            durationEl.textContent = quantity + ' سهم';
+            durationEl.style.color = quantity < 10 ? '#ef4444' : '#1e293b';
+
+            // منع المستخدم من شراء أكثر من الموجود
+            const shareInput = document.getElementById('shareCount');
+            shareInput.max = quantity;
+            shareInput.value = 1; 
+
             updateInvestmentTotal();
             document.getElementById('investmentModal').style.display = 'flex';
         };
 
+        window.handleWithdraw = () => {
+            // جلب القيمة من الحقل الجديد
+            const amountInput = document.getElementById('withdrawAmountInput');
+            const amount = parseFloat(amountInput.value);
+
+            // التحقق من المدخلات والرصيد
+            if (!amount || amount < 5000) {
+                showToast("الحد الأدنى للسحب هو 5,000 ل.س");
+                return;
+            }
+
+            if (amount > currentUser.balance) {
+                showToast("عذراً، رصيدك الحالي غير كافٍ");
+                return;
+            }
+
+            // إضافة العملية للسجل الحقيقي
+            const transaction = {
+                type: 'withdrawal',
+                amount: amount,
+                date: new Date().toISOString(), // تاريخ اللحظة الحالية
+                status: 'pending'
+            };
+
+            // خصم الرصيد وإضافة المعاملة
+            currentUser.balance -= amount;
+            userTransactions.unshift(transaction);
+
+            // تحديث الواجهة فوراً
+            updatePortfolioUI();
+            loadTransactionHistory();
+
+            showToast("تم إرسال طلب السحب بنجاح");
+            closeModal('withdrawModal');
+            amountInput.value = ''; // تصفير الحقل
+        };       
+        
         window.updateInvestmentTotal = () => {
             const shareCount = parseInt(document.getElementById('shareCount').value) || 1;
             const total = shareCount * currentInvestment.price;
@@ -900,14 +1174,14 @@
                     // تحديث بيانات المستخدم
                     const newAssets = uDoc.data().assets || [];
                     for (let i = 0; i < shareCount; i++) {
-                        newAssets.push({ 
-                            id: currentInvestment.itemId,
-                            name: currentInvestment.name, 
-                            priceAtPurchase: currentInvestment.price, 
-                            date: new Date().toISOString(),
-                            returnRate: currentInvestment.returnRate,
-                            duration: currentInvestment.duration
-                        });
+                    newAssets.push({ 
+                        id: currentInvestment.itemId,
+                        name: currentInvestment.name, 
+                        priceAtPurchase: currentInvestment.price, 
+                        date: new Date().toISOString(),
+                        returnRate: currentInvestment.returnRate || 0, // قيمة افتراضية إذا لم يوجد
+                        duration: currentInvestment.duration || "غير محدد" // حماية ضد الـ undefined
+                    });
                     }
                     
                     transaction.update(uRef, {
@@ -933,12 +1207,12 @@
         function loadRecentInvestments() {
             const container = document.getElementById('recentInvestments');
             const assets = currentUser.assets || [];
-            
+
             if (assets.length === 0) {
                 container.innerHTML = `
                     <div class="list-item" style="text-align: center; color: #94a3b8; padding: 30px;">
                         <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 10px;"></i>
-                        <div>لا توجد استثمارات حالياً</div>
+                        <div>لا توجد استثمارات نشطة حالياً</div>
                         <button onclick="openTab('market')" style="margin-top: 15px; background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">
                             ابدأ بالاستثمار الآن
                         </button>
@@ -946,136 +1220,97 @@
                 `;
                 return;
             }
-            
-            container.innerHTML = '';
-            const recentAssets = assets.slice(-5).reverse(); // آخر 5 استثمارات
-            
-            recentAssets.forEach(asset => {
-                const date = new Date(asset.date).toLocaleDateString('ar-SA');
-                container.innerHTML += `
-                    <div class="list-item">
-                        <div>
-                            <div style="font-weight: 600;">${asset.name}</div>
-                            <div style="font-size: 0.8rem; color: #64748b;">${date}</div>
-                        </div>
-                        <div style="text-align: left;">
-                            <div style="font-weight: 600; color: var(--success);">${asset.priceAtPurchase.toLocaleString()} ل.س</div>
-                            <div style="font-size: 0.8rem; color: #64748b;">عائد: ${asset.returnRate || 0}%</div>
-                        </div>
-                    </div>
-                `;
-            });
-        }
 
-        function loadTransactionHistory() {
-            const container = document.getElementById('transactionHistory');
             container.innerHTML = '';
-            
-            // سحب البيانات من Firestore (نموذج)
-            const transactions = [
-                { type: 'deposit', amount: 50000, date: '2024-01-15', status: 'completed' },
-                { type: 'investment', amount: 25000, date: '2024-01-20', status: 'completed' },
-                { type: 'withdrawal', amount: 10000, date: '2024-01-25', status: 'pending' },
-                { type: 'profit', amount: 5000, date: '2024-01-30', status: 'completed' }
-            ];
-            
-            transactions.forEach(trans => {
-                const typeNames = {
-                    'deposit': 'إيداع',
-                    'withdrawal': 'سحب',
-                    'investment': 'استثمار',
-                    'profit': 'ربح'
-                };
-                
-                const statusBadges = {
-                    'completed': '<span class="badge badge-success">مكتمل</span>',
-                    'pending': '<span class="badge badge-warning">قيد الانتظار</span>',
-                    'failed': '<span class="badge badge-danger">فاشل</span>'
-                };
-                
-                const icons = {
-                    'deposit': 'fa-arrow-down',
-                    'withdrawal': 'fa-arrow-up',
-                    'investment': 'fa-chart-line',
-                    'profit': 'fa-coins'
-                };
-                
-                const colors = {
-                    'deposit': 'var(--success)',
-                    'withdrawal': 'var(--danger)',
-                    'investment': 'var(--primary)',
-                    'profit': 'var(--accent)'
-                };
-                
+
+            // --- منطق التجميع (Grouping) ---
+            const grouped = assets.reduce((acc, curr) => {
+                const key = curr.name; 
+                if (!acc[key]) {
+                    acc[key] = { 
+                        name: curr.name, 
+                        count: 0, 
+                        totalPrice: 0, 
+                        lastDate: curr.date,
+                        returnRate: curr.returnRate || 0 
+                    };
+                }
+                acc[key].count += 1;
+                acc[key].totalPrice += Number(curr.priceAtPurchase);
+                return acc;
+            }, {});
+
+            // عرض المنتجات المجمعة بشكل أنيق
+            Object.values(grouped).reverse().forEach(item => {
+                const date = new Date(item.lastDate).toLocaleDateString('ar-SY');
                 container.innerHTML += `
-                    <div class="list-item">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="background: ${colors[trans.type]}20; color: ${colors[trans.type]}; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas ${icons[trans.type]}"></i>
+                    <div class="list-item" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #f1f5f9; background: white;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="background: #ecfdf5; color: #10b981; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-seedling"></i>
                             </div>
                             <div>
-                                <div style="font-weight: 600;">${typeNames[trans.type]}</div>
-                                <div style="font-size: 0.8rem; color: #64748b;">${trans.date}</div>
+                                <div style="font-weight: 700; color: #1e293b;">${item.name}</div>
+                                <div style="font-size: 0.8rem; color: #64748b;">العدد المستثمر: <span style="color: var(--primary); font-weight: bold;">${item.count}</span></div>
                             </div>
                         </div>
                         <div style="text-align: left;">
-                            <div style="font-weight: 600; color: ${trans.type === 'withdrawal' ? 'var(--danger)' : 'var(--success)'};">${trans.amount.toLocaleString()} ل.س</div>
-                            <div style="font-size: 0.8rem;">${statusBadges[trans.status]}</div>
+                            <div style="font-weight: 800; color: var(--text-main);">${item.totalPrice.toLocaleString()} ل.س</div>
+                            <div style="font-size: 0.7rem; color: #94a3b8;">${date}</div>
                         </div>
                     </div>
                 `;
             });
         }
+        function loadTransactionHistory() {
+            const container = document.getElementById('transactionHistory');
+            if (!container) return;
 
-        function initChart() {
-            const ctx = document.getElementById('portfolioChart').getContext('2d');
-            
-            if (portfolioChart) {
-                portfolioChart.destroy();
+            // 1. مسح أي معلومات وهمية سابقة
+            container.innerHTML = '';
+
+            // 2. جلب البيانات من مصفوفة العمليات الحقيقية (المفترض أنها تعبأ من Firebase)
+            // إذا كانت المصفوفة فارغة، سنعرض رسالة "لا توجد عمليات"
+            if (!userTransactions || userTransactions.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding:30px; color:#94a3b8;">
+                        <i class="fas fa-history" style="font-size:2rem; margin-bottom:10px; opacity:0.3;"></i>
+                        <p>لا توجد عمليات مسجلة حتى الآن</p>
+                    </div>`;
+                return;
             }
-            
-            portfolioChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
-                    datasets: [{
-                        label: 'قيمة المحفظة',
-                        data: [0, 15000, 35000, 60000, 85000, 120000],
-                        borderColor: 'var(--primary)',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            },
-                            ticks: {
-                                callback: function(value) {
-                                    return value.toLocaleString() + ' ل.س';
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    }
-                }
+
+            // 3. عرض العمليات الحقيقية فقط
+            userTransactions.forEach(trans => {
+                const typeNames = {
+                    'deposit': 'إيداع رصيد',
+                    'withdrawal': 'سحب رصيد',
+                    'investment': 'استثمار',
+                    'profit': 'أرباح'
+                };
+
+                const dateObj = new Date(trans.date);
+                const formattedDate = dateObj.toLocaleDateString('ar-SA', {
+                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                });
+
+                container.innerHTML += `
+                    <div class="transaction-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f1f5f9;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="color: var(--primary);"><i class="fas fa-exchange-alt"></i></div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 0.9rem;">${typeNames[trans.type] || trans.type}</div>
+                                <div style="font-size: 0.7rem; color: #94a3b8;">${formattedDate}</div>
+                            </div>
+                        </div>
+                        <div style="font-weight: 800; color: ${trans.type === 'deposit' ? '#10b981' : '#ef4444'}">
+                            ${Number(trans.amount).toLocaleString()} ل.س
+                        </div>
+                    </div>`;
             });
         }
+
+        
 
         window.setWithdrawAmount = (amount) => {
             document.getElementById('withdrawAmt').value = amount;
@@ -1143,14 +1378,7 @@
                 });
             }
             
-            // إذا كانت الصفحة هي الرئيسية، قم بتحديث الرسم البياني
-            if (id === 'home') {
-                setTimeout(() => {
-                    if (portfolioChart) {
-                        portfolioChart.resize();
-                    }
-                }, 300);
-            }
+           
         };
 
         function getTabName(id) {
