@@ -52,6 +52,17 @@
         </div>
     </div>
 
+    
+    <button class="menu-toggle" onclick="toggleMenu()">
+        ☰ القائمة
+    </button>
+
+    <div class="sidebar" id="mySidebar">
+        </div>
+
+    <div class="main">
+        </div>
+    
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header"><i class="fas fa-layer-group"></i> تـاجر <span>Admin</span></div>
         <div class="nav">
@@ -253,6 +264,26 @@
         </div>
     </div>
 </div>
+    <script>
+    function toggleMenu() {
+        // نحدد القائمة الجانبية
+        const sidebar = document.querySelector('.sidebar');
+        
+        // نقوم بإضافة أو إزالة كلاس اسمه 'active'
+        sidebar.classList.toggle('active');
+    }
+
+    // كود إضافي: لإغلاق القائمة عند الضغط خارجها (اختياري لكن احترافي)
+    document.addEventListener('click', function(event) {
+        const sidebar = document.querySelector('.sidebar');
+        const menuBtn = document.querySelector('.menu-toggle');
+        
+        // إذا كانت الضغطة خارج القائمة وخارج الزر، والقائمة مفتوحة -> أغلقها
+        if (!sidebar.contains(event.target) && !menuBtn.contains(event.target) && sidebar.classList.contains('active')) {
+            sidebar.classList.remove('active');
+        }
+    });
+    </script>
 
     <script type="module" src="control.js"></script>
 </body>
