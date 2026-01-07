@@ -951,231 +951,136 @@ input:focus, select:focus, textarea:focus {
 
 /* 21. RESPONSIVE DESIGN - MOBILE FIRST */
 @media (max-width: 768px) {
-  /* Mobile-specific adjustments */
-  
-  html {
-    font-size: 14px;
-  }
-  
-  .main {
-        padding: 20px 15px !important; /* هوامش جانبية 15 بكسل وعلوية 20 بكسل */
+    /* Mobile-specific adjustments */
+    
+    html {
+        font-size: 14px;
+    }
+    
+    .main {
+        padding: 20px 15px !important;
         margin: 0 !important;
         width: 100% !important;
-        box-sizing: border-box; /* لضمان عدم خروج المحتوى عن الشاشة */
-        overflow-x: hidden; /* لمنع التمرير الجانبي المزعج */
+        box-sizing: border-box !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
     }
-  
-  /* Sidebar hidden on mobile */
-  .sidebar {
-    transform: translateX(100%);
-    width: 280px;
-  }
-  
-  .sidebar.active {
-    transform: translateX(0);
-  }
-  
-  .menu-toggle {
-    display: flex;
-  }
-  
-  /* Bottom Navigation visible on mobile */
-  .bottom-nav {
-    display: flex;
-  }
-  
-  /* Grid adjustments */
-  .grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  
-  /* Tables convert to cards on mobile */
-  table, thead, tbody, th, td, tr {
-    display: block;
-  }
-  
-  thead tr {
-    position: absolute;
-    top: -9999px;
-    right: -9999px;
-  }
-  
-  tr {
-    margin-bottom: 1rem;
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    @extend .glass-effect-light;
-    border: 1px solid var(--color-border);
-  }
-  
-  td {
-    border: none;
-    border-bottom: 1px solid var(--color-border);
-    position: relative;
-    padding-right: 50%;
-    text-align: left;
-    padding: 1rem;
-  }
-  
-  td:last-child {
-    border-bottom: none;
-  }
-  
-  td::before {
-    content: attr(data-label);
-    position: absolute;
-    right: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    font-weight: 700;
-    color: var(--color-text-primary);
-    width: 45%;
-    text-align: right;
-  }
-  
-  /* Withdrawal grid adjustment */
-  .withdraw-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  /* Section padding adjustment */
-  .section {
-    padding: 1.25rem;
-  }
-  
-  /* Modal adjustments */
-  .modal-box {
-    width: 95%;
-    margin: 1rem;
-  }
-  
-  /* Input group adjustments */
-  .input-group {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (min-width: 769px) and (max-width: 1024px) {
-  /* Tablet adjustments */
-  .grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .sidebar {
-    width: 240px;
-  }
-  
-  .main {
-    margin-right: 240px;
-  }
-}
-
-@media (min-width: 1025px) {
-  /* Desktop adjustments */
-  .grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-/* 22. ANIMATIONS & MICRO-INTERACTIONS */
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-.pulse {
-  animation: pulse 2s infinite;
-}
-
-@keyframes slideInRight {
-  from {
-    transform: translateX(30px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-.slide-in-right {
-  animation: slideInRight 0.3s ease;
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-.float {
-  animation: float 3s ease-in-out infinite;
-}
-
-/* 23. SCROLLBAR STYLING */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.3);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.5);
-}
-
-/* 24. UTILITY CLASSES */
-.text-gradient {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.border-gradient {
-  border: 2px solid transparent;
-  background: linear-gradient(var(--color-bg-secondary), var(--color-bg-secondary)) padding-box,
-              linear-gradient(135deg, var(--color-primary), var(--color-accent)) border-box;
-}
-
-.hover-lift {
-  transition: transform var(--transition-base);
-}
-
-.hover-lift:hover {
-  transform: translateY(-5px);
-}
-
-/* 25. LOADING STATES */
-.loading-shimmer {
-  background: linear-gradient(90deg, 
-    rgba(255, 255, 255, 0.03) 25%, 
-    rgba(255, 255, 255, 0.08) 50%, 
-    rgba(255, 255, 255, 0.03) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+    
+    /* Ensure no element causes horizontal scrolling */
+    .section, .grid, .stat-card, table, .withdraw-grid, .modal-box {
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Fix button clickability */
+    button, .btn, .btn-icon, .nav-item, .menu-toggle, 
+    .confirm-actions button, .withdraw-card button {
+        z-index: 9999 !important;
+        pointer-events: auto !important;
+        position: relative;
+    }
+    
+    /* Sidebar hidden on mobile */
+    .sidebar {
+        transform: translateX(100%);
+        width: 280px;
+    }
+    
+    .sidebar.active {
+        transform: translateX(0);
+    }
+    
+    .menu-toggle {
+        display: flex;
+    }
+    
+    /* Bottom Navigation visible on mobile */
+    .bottom-nav {
+        display: flex;
+    }
+    
+    /* Grid adjustments */
+    .grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    /* Tables convert to cards on mobile */
+    table, thead, tbody, th, td, tr {
+        display: block;
+        max-width: 100% !important;
+    }
+    
+    thead tr {
+        position: absolute;
+        top: -9999px;
+        right: -9999px;
+    }
+    
+    tr {
+        margin-bottom: 1rem;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        border: 1px solid var(--color-border);
+        max-width: 100% !important;
+    }
+    
+    td {
+        border: none;
+        border-bottom: 1px solid var(--color-border);
+        position: relative;
+        padding-right: 50%;
+        text-align: left;
+        padding: 1rem;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    
+    td:last-child {
+        border-bottom: none;
+    }
+    
+    td::before {
+        content: attr(data-label);
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-weight: 700;
+        color: var(--color-text-primary);
+        width: 45%;
+        text-align: right;
+    }
+    
+    /* Withdrawal grid adjustment */
+    .withdraw-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Section padding adjustment */
+    .section {
+        padding: 1.25rem !important;
+        margin: 0 0 1.5rem 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* Modal adjustments */
+    .modal-box {
+        width: 95% !important;
+        margin: 1rem !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* Input group adjustments */
+    .input-group {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Ensure no 100vw elements */
+    * {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
 }

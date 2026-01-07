@@ -39,6 +39,20 @@
         .badge-success {
             animation: statusPulse 2s infinite;
         }
+
+        /* Button fix for clickability */
+        button, .btn, .btn-icon, .nav-item, .menu-toggle {
+            z-index: 9999 !important;
+            pointer-events: auto !important;
+            position: relative;
+        }
+
+        /* Current balance display for asset modal */
+        #currentBalanceSpan {
+            font-weight: bold;
+            color: var(--color-primary);
+            font-size: 1.2rem;
+        }
     </style>
 </head>
 <body>
@@ -50,8 +64,8 @@
                 <h3 id="confirmTitle">تأكيد العملية</h3>
                 <p id="confirmMessage" style="color: var(--color-text-muted); margin-top: 10px;"></p>
                 <div class="confirm-actions">
-                    <button id="confirmNoBtn" style="background: var(--color-bg-tertiary); color: var(--color-text-secondary);">إلغاء</button>
-                    <button id="confirmYesBtn" style="background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); color: #fff;">تأكيد التنفيذ</button>
+                    <button id="confirmNoBtn" class="confirm-btn">إلغاء</button>
+                    <button id="confirmYesBtn" class="confirm-btn confirm-btn-yes">تأكيد التنفيذ</button>
                 </div>
             </div>
         </div>
@@ -68,11 +82,11 @@
                 <span>تـاجر</span>
             </div>
             <div class="nav">
-                <button class="active" onclick="openTab('dashboard',this)">
+                <button class="active" onclick="openTab('dashboard', this)">
                     <i class="fas fa-home"></i>
                     <span>الرئيسية</span>
                 </button>
-                <button onclick="openTab('users',this)">
+                <button onclick="openTab('users', this)">
                     <i class="fas fa-users"></i>
                     <span>المستثمرين</span>
                 </button>
@@ -80,19 +94,19 @@
                     <i class="fas fa-comments"></i>
                     <span>مركز الرسائل</span>
                 </button>
-                <button onclick="openTab('market',this)">
+                <button onclick="openTab('market', this)">
                     <i class="fas fa-store"></i>
                     <span>إدارة السوق</span>
                 </button>
-                <button onclick="openTab('withdrawalsTab',this)">
+                <button onclick="openTab('withdrawalsTab', this)">
                     <i class="fas fa-money-bill-wave"></i>
                     <span>طلبات السحب</span>
                 </button>
-                <button onclick="openTab('profits',this)">
+                <button onclick="openTab('profits', this)">
                     <i class="fas fa-hand-holding-usd"></i>
                     <span>توزيع الأرباح</span>
                 </button>
-                <button onclick="openTab('logs',this)">
+                <button onclick="openTab('logs', this)">
                     <i class="fas fa-history"></i>
                     <span>السجل</span>
                 </button>
@@ -312,6 +326,10 @@
                 </div>
                 <div class="modal-body">
                     <input type="hidden" id="assetUserId">
+                    <div style="margin-bottom: 15px; padding: 10px; background: var(--color-bg-tertiary); border-radius: var(--radius-md);">
+                        <span>الرصيد الحالي للمستثمر: </span>
+                        <span id="currentBalanceSpan">0 ل.س</span>
+                    </div>
                     <label style="color: var(--color-text-primary); margin-bottom: 8px; display: block;">اختر المنتج من السوق:</label>
                     <select id="assetSelect" onchange="updateProductDetails()" class="glass-effect-light" style="padding:12px; margin-bottom:15px;"></select>
                     
