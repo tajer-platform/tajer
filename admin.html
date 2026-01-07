@@ -139,7 +139,7 @@
                         <h3>إجمالي الأسهم المباعة</h3>
                         <span class="val" id="d-total-shares">0</span>
                     </div>
-                    <div class="stat-card special hover-lift" onclick="openModal('sharePriceModal')">
+                    <div class="stat-card special hover-lift" onclick="window.openModal('sharePriceModal')">
                         <i class="fas fa-chart-pie icon-bg"></i>
                         <h3>سعر السهم الحالي</h3> 
                         <span class="val" id="d-share-value">0</span>
@@ -159,7 +159,7 @@
                 <div class="section">
                     <div class="section-header">
                         <h2><i class="fas fa-users"></i> قائمة المستثمرين</h2>
-                        <button class="btn btn-primary" onclick="openModal('userModal')">
+                        <button class="btn btn-primary" onclick="window.openModal('userModal')">
                             <i class="fas fa-plus"></i> إضافة مستثمر
                         </button>
                     </div>
@@ -193,7 +193,7 @@
                         <input type="text" id="pPrice" placeholder="السعر" class="glass-effect-light">
                         <input type="number" id="pReturn" placeholder="العائد %" class="glass-effect-light">
                         <input type="text" id="pQty" placeholder="الكمية" class="glass-effect-light">
-                        <button class="btn btn-success" onclick="addProduct()">
+                        <button class="btn btn-success" onclick="window.addProduct()">
                             <i class="fas fa-plus"></i> إضافة
                         </button>
                     </div>
@@ -280,11 +280,11 @@
             <div class="modal-box">
                 <div class="modal-header">
                     <span>تحديث قيمة السهم</span>
-                    <button class="modal-close" onclick="closeModal('sharePriceModal')">&times;</button>
+                    <button class="modal-close" onclick="window.closeModal('sharePriceModal')">&times;</button>
                 </div>
                 <div class="modal-body">
                     <input type="text" id="manualSharePriceInput" placeholder="السعر الجديد" class="glass-effect-light">
-                    <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="saveSharePrice()">حفظ القيمة</button>
+                    <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="window.saveSharePrice()">حفظ القيمة</button>
                 </div>
             </div>
         </div>
@@ -293,13 +293,13 @@
             <div class="modal-box">
                 <div class="modal-header">
                     <span>إضافة مستثمر</span>
-                    <button class="modal-close" onclick="closeModal('userModal')">&times;</button>
+                    <button class="modal-close" onclick="window.closeModal('userModal')">&times;</button>
                 </div>
                 <div class="modal-body">
                     <input type="text" id="newUserName" placeholder="الاسم الكامل" class="glass-effect-light">
                     <input type="text" id="newUserPhone" placeholder="رقم الجوال" class="glass-effect-light" style="margin-top: 10px;">
                     <input type="text" id="newUserBalance" placeholder="الرصيد الابتدائي" class="glass-effect-light" style="margin-top: 10px;">
-                    <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="confirmAddUser()">إضافة المستثمر</button>
+                    <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="window.confirmAddUser()">إضافة المستثمر</button>
                 </div>
             </div>
         </div>

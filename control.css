@@ -971,6 +971,9 @@ input:focus, select:focus, textarea:focus {
         max-width: 100% !important;
         overflow-x: hidden !important;
     }
+    .stat-card {
+        margin: 5px !important; /* يمنع التصاق الكروت ببعضها وبالحواف */
+    }
     
     /* Fix button clickability */
     button, .btn, .btn-icon, .nav-item, .menu-toggle, 
@@ -1001,8 +1004,8 @@ input:focus, select:focus, textarea:focus {
     
     /* Grid adjustments */
     .grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
+        padding: 0 10px !important; /* يضيف مساحة جانبية للكروت */
+        gap: 15px;
     }
     
     /* Tables convert to cards on mobile */
