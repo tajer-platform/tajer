@@ -355,6 +355,12 @@ p {
   border: 1px solid var(--glass-border);
 }
 
+.stat-card, .section, tr {
+        margin-left: 5px !important;
+        margin-right: 5px !important;
+        width: auto !important; /* للسماح للهوامش بالظهور */
+    }
+
 .stat-card::before {
   content: "";
   position: absolute;
@@ -952,10 +958,12 @@ input:focus, select:focus, textarea:focus {
   }
   
   .main {
-    margin-right: 0;
-    padding: 1rem;
-    padding-bottom: 80px;
-  }
+        padding: 20px 15px !important; /* هوامش جانبية 15 بكسل وعلوية 20 بكسل */
+        margin: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box; /* لضمان عدم خروج المحتوى عن الشاشة */
+        overflow-x: hidden; /* لمنع التمرير الجانبي المزعج */
+    }
   
   /* Sidebar hidden on mobile */
   .sidebar {
