@@ -124,13 +124,16 @@
                     <table id="usersTable">
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>الاسم الكامل</th>
-                                <th>المحفظة</th>
-                                <th>الممتلكات</th>
-                                <th>إجمالي الاستثمار</th>
-                                <th>الأسهم</th>
-                                <th>إجراءات</th>
+                                <td data-label="#">{{index}}</td>
+                                <td data-label="الاسم الكامل">{{name}}</td>
+                                <td data-label="المحفظة">{{wallet}} ل.س</td>
+                                <td data-label="الممتلكات">{{assets}}</td>
+                                <td data-label="إجمالي الاستثمار">{{totalInvestment}} ل.س</td>
+                                <td data-label="الأسهم">{{shares}}</td>
+                                <td data-label="إجراءات">
+                                    <button class="btn btn-sm btn-warning" onclick="editBalance('{{id}}')">تعديل</button>
+                                    <button class="btn btn-sm btn-purple" onclick="openAssetModal('{{id}}')">إضافة أصل</button>
+                                </td>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -152,7 +155,16 @@
                 <table id="marketTable" style="margin-top: 15px;">
                     <thead>
                         <tr>
-                            <th>المنتج</th><th>السعر</th><th>العائد</th><th>المخزون</th><th>الحالة</th><th>حذف</th>
+                            <td data-label="المنتج">{{productName}}</td>
+                            <td data-label="السعر">{{price}} ل.س</td>
+                            <td data-label="العائد">{{return}}%</td>
+                            <td data-label="المخزون">{{quantity}}</td>
+                            <td data-label="الحالة">
+                                <span class="badge {{statusClass}}">{{status}}</span>
+                            </td>
+                            <td data-label="حذف">
+                                <button class="btn btn-sm btn-danger" onclick="removeProduct({{id}})"><i class="fas fa-trash"></i></button>
+                            </td>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -191,6 +203,30 @@
             </div>
         </div>
     </div>
+    
+    <!-- شريط التنقل السفلي للجوال -->
+    <div class="bottom-nav">
+        <a href="#" class="nav-item active" onclick="openTab('dashboard', this)">
+            <i class="fas fa-home"></i>
+            <span>الرئيسية</span>
+        </a>
+        <a href="#" class="nav-item" onclick="openTab('users', this)">
+            <i class="fas fa-users"></i>
+            <span>المستثمرين</span>
+        </a>
+        <a href="#" class="nav-item" onclick="window.location.href='messages.html'">
+            <i class="fas fa-comments"></i>
+            <span>الرسائل</span>
+        </a>
+        <a href="#" class="nav-item" onclick="openTab('withdrawalsTab', this)">
+            <i class="fas fa-money-bill-wave"></i>
+            <span>السحوبات</span>
+        </a>
+        <a href="#" class="nav-item" onclick="openTab('logs', this)">
+            <i class="fas fa-history"></i>
+            <span>السجل</span>
+        </a>
+    </div>    
 
     <div class="modal-overlay" id="sharePriceModal">
         <div class="modal-box">

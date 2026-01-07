@@ -91,7 +91,68 @@ function askConfirm(title, message) {
     });
 }
 
+// إدارة التنقل بين التبويبات على الجوال
+function openTab(tabName, element) {
+    // إخفاء جميع التبويبات
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // إظهار التبويب المطلوب
+    document.getElementById(tabName).classList.add('active');
+    
+    // تحديد العنصر النشط في الشريط الجانبي
+    document.querySelectorAll('.nav button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // تحديد العنصر النشط في الشريط السفلي
+    if (element) {
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        element.classList.add('active');
+    }
+    
+    // إغلاق القائمة الجانبية إذا كانت مفتوحة على الجوال
+    if (window.innerWidth <= 768) {
+        const sidebar = document.querySelector('.sidebar');
+        sidebar.classList.remove('active');
+    }
+}
 
+// إعادة تهيئة الشريط السفلي عند التحميل
+document.addEventListener('DOMContentLoaded', function() {
+    // إضافة الشريط السفلي إذا لم يكن موجوداً
+    if (!document.querySelector('.bottom-nav')) {
+        // كود إضافة الشريط السفلي
+        const bottomNav = document.createElement('div');
+        bottomNav.className = 'bottom-nav';
+        bottomNav.innerHTML = `
+            <a href="#" class="nav-item active" onclick="openTab('dashboard', this)">
+                <i class="fas fa-home"></i>
+                <span>الرئيسية</span>
+            </a>
+            <a href="#" class="nav-item" onclick="openTab('users', this)">
+                <i class="fas fa-users"></i>
+                <span>المستثمرين</span>
+            </a>
+            <a href="#" class="nav-item" onclick="window.location.href='messages.html'">
+                <i class="fas fa-comments"></i>
+                <span>الرسائل</span>
+            </a>
+            <a href="#" class="nav-item" onclick="openTab('withdrawalsTab', this)">
+                <i class="fas fa-money-bill-wave"></i>
+                <span>السحوبات</span>
+            </a>
+            <a href="#" class="nav-item" onclick="openTab('logs', this)">
+                <i class="fas fa-history"></i>
+                <span>السجل</span>
+            </a>
+        `;
+        document.body.appendChild(bottomNav);
+    }
+});
 function setBtnLoading(btn, isLoading) {
     if (!btn) return;
     if (isLoading) {
