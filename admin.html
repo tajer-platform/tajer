@@ -8,319 +8,507 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="control.css">
     <style>
-        /* تحسينات التصميم */
-        .toast-msg {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: #1f2937; color: #fff; padding: 12px 25px; border-radius: 50px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 10000; opacity: 0; transition: 0.3s;
-            display: flex; align-items: center; gap: 10px; font-weight: bold; pointer-events: none;
+        /* Additional inline styles for components not covered in main CSS */
+        #productDetailCard {
+            transition: all 0.3s ease;
         }
-        .confirm-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 11000; opacity: 0; pointer-events: none; transition: 0.3s;
-        }
-        .confirm-modal.show { opacity: 1; pointer-events: auto; }
-        .confirm-box {
-            background: #fff; width: 90%; max-width: 400px; padding: 25px;
-            border-radius: 20px; text-align: center; transform: scale(0.8); transition: 0.3s;
-        }
-        .confirm-modal.show .confirm-box { transform: scale(1); }
-        .confirm-actions { display: flex; gap: 10px; margin-top: 20px; }
-        .confirm-actions button { flex: 1; padding: 12px; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; }
         
-        /* تنسيق طلبات السحب */
-        .withdraw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px; }
-        .withdraw-card { background: #fff; padding: 15px; border-radius: 15px; border: 1px solid #e2e8f0; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .withdraw-card h4 { margin-bottom: 5px; color: #1e293b; }
-        .withdraw-card .price { font-size: 1.2rem; font-weight: 800; color: #2563eb; margin: 10px 0; }
-        .withdraw-card .actions { display: flex; gap: 8px; margin-top: 10px; }
+        #miniLogBox .log-item {
+            animation: slideInRight 0.5s ease;
+            animation-fill-mode: both;
+        }
+        
+        #miniLogBox .log-item:nth-child(1) { animation-delay: 0.1s; }
+        #miniLogBox .log-item:nth-child(2) { animation-delay: 0.2s; }
+        #miniLogBox .log-item:nth-child(3) { animation-delay: 0.3s; }
+        #miniLogBox .log-item:nth-child(4) { animation-delay: 0.4s; }
+        #miniLogBox .log-item:nth-child(5) { animation-delay: 0.5s; }
+        
+        /* Profit distribution section enhancement */
+        #profitPerShareHint {
+            transition: all 0.3s ease;
+        }
+        
+        /* Status indicator animation */
+        @keyframes statusPulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        
+        .badge-success {
+            animation: statusPulse 2s infinite;
+        }
     </style>
 </head>
 <body>
-
-    <div class="confirm-modal" id="confirmModal">
-        <div class="confirm-box">
-            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #f59e0b; margin-bottom: 15px;"></i>
-            <h3 id="confirmTitle">تأكيد العملية</h3>
-            <p id="confirmMessage" style="color: #64748b; margin-top: 10px;"></p>
-            <div class="confirm-actions">
-                <button id="confirmNoBtn" style="background: #f1f5f9; color: #334155;">إلغاء</button>
-                <button id="confirmYesBtn" style="background: #2563eb; color: #fff;">تأكيد التنفيذ</button>
-            </div>
-        </div>
-    </div>
-
-    
-    <button class="menu-toggle" onclick="toggleMenu()">
-        ☰ القائمة
-    </button>
-
-    <div class="sidebar" id="mySidebar">
-        </div>
-
-    <div class="main">
-        </div>
-    
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header"><i class="fas fa-layer-group"></i> تـاجر <span>Admin</span></div>
-        <div class="nav">
-            <button class="active" onclick="openTab('dashboard',this)"><i class="fas fa-home"></i> الرئيسية</button>
-            <button onclick="openTab('users',this)"><i class="fas fa-users"></i> المستثمرين</button>
-            <button onclick="window.location.href='messages.html'"><i class="fas fa-comments"></i> مركز الرسائل</button>
-            <button onclick="openTab('market',this)"><i class="fas fa-store"></i> إدارة السوق</button>
-            <button onclick="openTab('withdrawalsTab',this)"><i class="fas fa-money-bill-wave"></i> طلبات السحب</button>
-            <button onclick="openTab('profits',this)"><i class="fas fa-hand-holding-usd"></i> توزيع الأرباح</button>
-            <button onclick="openTab('logs',this)"><i class="fas fa-history"></i> السجل</button>
-            <button onclick="logout()" style="margin-top: 20px; color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid #ef4444;">
-                <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
-            </button>
-        </div>
-    </div>
-
-    <div class="main">
-        <div id="toastContainer"></div>
-
-        <div id="dashboard" class="tab active">
-            <div class="grid">
-                <div class="stat-card border-l">
-                    <i class="fas fa-users icon-bg"></i>
-                    <h3>إجمالي المستثمرين</h3>
-                    <span class="val" id="d-users">0</span>
-                </div>
-                <div class="stat-card border-s">
-                    <i class="fas fa-wallet icon-bg"></i>
-                    <h3>رأس المال (ل.س)</h3>
-                    <span class="val" id="d-capital">0</span>
-                </div>
-                <div class="stat-card border-i">
-                    <i class="fas fa-boxes icon-bg"></i>
-                    <h3>إجمالي الأسهم المباعة</h3>
-                    <span class="val" id="d-total-shares">0</span>
-                </div>
-                <div class="stat-card special" onclick="openModal('sharePriceModal')">
-                    <i class="fas fa-chart-pie icon-bg"></i>
-                    <h3>سعر السهم الحالي</h3> 
-                    <span class="val" id="d-share-value">0</span>
-                    <span style="font-size: 0.8rem; opacity: 0.8;">ل.س / اضغط للتعديل</span>
+    <div class="main-container">
+        <!-- Confirmation Modal (unchanged structure) -->
+        <div class="confirm-modal" id="confirmModal">
+            <div class="confirm-box">
+                <i class="fas fa-exclamation-triangle text-gradient" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                <h3 id="confirmTitle">تأكيد العملية</h3>
+                <p id="confirmMessage" style="color: var(--color-text-muted); margin-top: 10px;"></p>
+                <div class="confirm-actions">
+                    <button id="confirmNoBtn" style="background: var(--color-bg-tertiary); color: var(--color-text-secondary);">إلغاء</button>
+                    <button id="confirmYesBtn" style="background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); color: #fff;">تأكيد التنفيذ</button>
                 </div>
             </div>
-            <div class="section" style="margin-top:20px;">
-                <div class="section-header">
-                    <h2>🔥 آخر العمليات</h2>
-                </div>
-                <div id="miniLogBox"></div>
+        </div>
+        
+        <!-- Menu Toggle Button -->
+        <button class="menu-toggle" onclick="toggleMenu()" id="menuToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+        
+        <!-- Sidebar with glass effect -->
+        <div class="sidebar glass-effect" id="sidebar">
+            <div class="sidebar-header">
+                <i class="fas fa-layer-group"></i>
+                <span>تـاجر</span>
+            </div>
+            <div class="nav">
+                <button class="active" onclick="openTab('dashboard',this)">
+                    <i class="fas fa-home"></i>
+                    <span>الرئيسية</span>
+                </button>
+                <button onclick="openTab('users',this)">
+                    <i class="fas fa-users"></i>
+                    <span>المستثمرين</span>
+                </button>
+                <button onclick="window.location.href='messages.html'">
+                    <i class="fas fa-comments"></i>
+                    <span>مركز الرسائل</span>
+                </button>
+                <button onclick="openTab('market',this)">
+                    <i class="fas fa-store"></i>
+                    <span>إدارة السوق</span>
+                </button>
+                <button onclick="openTab('withdrawalsTab',this)">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span>طلبات السحب</span>
+                </button>
+                <button onclick="openTab('profits',this)">
+                    <i class="fas fa-hand-holding-usd"></i>
+                    <span>توزيع الأرباح</span>
+                </button>
+                <button onclick="openTab('logs',this)">
+                    <i class="fas fa-history"></i>
+                    <span>السجل</span>
+                </button>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>تسجيل الخروج</span>
+                </button>
             </div>
         </div>
-
-        <div id="users" class="tab">
-            <div class="section">
-                <div class="section-header">
-                    <h2>👥 قائمة المستثمرين</h2>
-                    <button class="btn btn-primary" onclick="openModal('userModal')"><i class="fas fa-plus"></i> إضافة مستثمر</button>
+        
+        <!-- Main Content Area -->
+        <div class="main" id="mainContent">
+            <div id="toastContainer"></div>
+            
+            <!-- Dashboard Tab -->
+            <div id="dashboard" class="tab active">
+                <div class="grid">
+                    <div class="stat-card border-l hover-lift">
+                        <i class="fas fa-users icon-bg"></i>
+                        <h3>إجمالي المستثمرين</h3>
+                        <span class="val" id="d-users">0</span>
+                    </div>
+                    <div class="stat-card border-s hover-lift">
+                        <i class="fas fa-wallet icon-bg"></i>
+                        <h3>رأس المال (ل.س)</h3>
+                        <span class="val" id="d-capital">0</span>
+                    </div>
+                    <div class="stat-card border-i hover-lift">
+                        <i class="fas fa-boxes icon-bg"></i>
+                        <h3>إجمالي الأسهم المباعة</h3>
+                        <span class="val" id="d-total-shares">0</span>
+                    </div>
+                    <div class="stat-card special hover-lift" onclick="openModal('sharePriceModal')">
+                        <i class="fas fa-chart-pie icon-bg"></i>
+                        <h3>سعر السهم الحالي</h3> 
+                        <span class="val" id="d-share-value">0</span>
+                        <span style="font-size: 0.8rem; opacity: 0.8; color: var(--color-text-muted);">ل.س / اضغط للتعديل</span>
+                    </div>
                 </div>
-                <div style="overflow-x: auto;">
-                    <table id="usersTable">
+                <div class="section" style="margin-top: 20px;">
+                    <div class="section-header">
+                        <h2><i class="fas fa-fire" style="color: var(--color-warning);"></i> آخر العمليات</h2>
+                    </div>
+                    <div id="miniLogBox" class="logs-container"></div>
+                </div>
+            </div>
+            
+            <!-- Users Tab -->
+            <div id="users" class="tab">
+                <div class="section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-users"></i> قائمة المستثمرين</h2>
+                        <button class="btn btn-primary" onclick="openModal('userModal')">
+                            <i class="fas fa-plus"></i> إضافة مستثمر
+                        </button>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table id="usersTable">
+                            <thead>
+                                <tr>
+                                    <td data-label="#">#</td>
+                                    <td data-label="الاسم الكامل">الاسم الكامل</td>
+                                    <td data-label="المحفظة">المحفظة (ل.س)</td>
+                                    <td data-label="الممتلكات">الممتلكات</td>
+                                    <td data-label="إجمالي الاستثمار">إجمالي الاستثمار (ل.س)</td>
+                                    <td data-label="الأسهم">الأسهم</td>
+                                    <td data-label="إجراءات">إجراءات</td>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Market Tab -->
+            <div id="market" class="tab">
+                <div class="section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-store"></i> إدارة السوق والمخزون</h2>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="pName" placeholder="اسم المنتج" class="glass-effect-light">
+                        <input type="text" id="pPrice" placeholder="السعر" class="glass-effect-light">
+                        <input type="number" id="pReturn" placeholder="العائد %" class="glass-effect-light">
+                        <input type="text" id="pQty" placeholder="الكمية" class="glass-effect-light">
+                        <button class="btn btn-success" onclick="addProduct()">
+                            <i class="fas fa-plus"></i> إضافة
+                        </button>
+                    </div>
+                    <table id="marketTable" class="glass-effect-light">
                         <thead>
                             <tr>
-                                <td data-label="#">{{index}}</td>
-                                <td data-label="الاسم الكامل">{{name}}</td>
-                                <td data-label="المحفظة">{{wallet}} ل.س</td>
-                                <td data-label="الممتلكات">{{assets}}</td>
-                                <td data-label="إجمالي الاستثمار">{{totalInvestment}} ل.س</td>
-                                <td data-label="الأسهم">{{shares}}</td>
-                                <td data-label="إجراءات">
-                                    <button class="btn btn-sm btn-warning" onclick="editBalance('{{id}}')">تعديل</button>
-                                    <button class="btn btn-sm btn-purple" onclick="openAssetModal('{{id}}')">إضافة أصل</button>
-                                </td>
+                                <td data-label="المنتج">المنتج</td>
+                                <td data-label="السعر">السعر (ل.س)</td>
+                                <td data-label="العائد">العائد (%)</td>
+                                <td data-label="المخزون">المخزون</td>
+                                <td data-label="الحالة">الحالة</td>
+                                <td data-label="حذف">حذف</td>
                             </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
                 </div>
             </div>
-        </div>
-
-        <div id="market" class="tab">
-            <div class="section">
-                <div class="section-header"><h2>🛒 إدارة السوق والمخزون</h2></div>
-                <div class="input-group" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px;">
-                    <input type="text" id="pName" placeholder="اسم المنتج">
-                    <input type="text" id="pPrice" placeholder="السعر">
-                    <input type="number" id="pReturn" placeholder="العائد %">
-                    <input type="text" id="pQty" placeholder="الكمية">
-                    <button class="btn btn-success" onclick="addProduct()"><i class="fas fa-plus"></i> إضافة</button>
-                </div>
-                <table id="marketTable" style="margin-top: 15px;">
-                    <thead>
-                        <tr>
-                            <td data-label="المنتج">{{productName}}</td>
-                            <td data-label="السعر">{{price}} ل.س</td>
-                            <td data-label="العائد">{{return}}%</td>
-                            <td data-label="المخزون">{{quantity}}</td>
-                            <td data-label="الحالة">
-                                <span class="badge {{statusClass}}">{{status}}</span>
-                            </td>
-                            <td data-label="حذف">
-                                <button class="btn btn-sm btn-danger" onclick="removeProduct({{id}})"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div id="withdrawalsTab" class="tab">
-            <div class="section">
-                <div class="section-header">
-                    <h2>💸 طلبات السحب المعلقة</h2>
-                </div>
-                <div id="withdrawalsContainer" class="withdraw-grid">
-                    </div>
-            </div>
-        </div>
-
-        <div id="profits" class="tab">
-            <div class="section" style="max-width: 600px; margin: auto; text-align: center;">
-                <i class="fas fa-coins" style="font-size: 4rem; color: #f59e0b; margin-bottom: 20px;"></i>
-                <h2>نظام توزيع الأرباح</h2>
-                <div style="background: #f8fafc; padding: 25px; border-radius: 12px; margin: 20px 0; border: 1px solid #e2e8f0; text-align: right;">
-                    <label style="font-weight:bold; display:block; margin-bottom:10px;">المبلغ الإجمالي للتوزيع:</label>
-                    <input type="text" id="profitInput" placeholder="أدخل المبلغ..." style="width:100%; padding:15px; font-size:1.2rem; border-radius:10px; border:1px solid #cbd5e1;">
-                    <div id="profitPerShareHint" style="margin-top:10px; padding:10px; background:#dcfce7; color:#166534; border-radius:8px; display:none; font-weight:bold;"></div>
-                    <p style="margin-top: 15px; color: #64748b;">إجمالي الأسهم الحالية: <span id="d-total-shares-preview" style="font-weight: bold; color: #1e293b;">0</span></p>
-                </div>
-                <button class="btn btn-success" id="distributeBtn" style="width:100%; padding:15px;" onclick="executeDistribution()">اعتماد وتوزيع الأرباح</button>
-            </div>
-        </div>
-
-        <div id="logs" class="tab">
-            <div class="section">
-                <div class="section-header"><h2>📜 سجل النظام الزمني</h2></div>
-                <div id="logsTimeline"></div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- شريط التنقل السفلي للجوال -->
-    <div class="bottom-nav">
-        <a href="#" class="nav-item active" onclick="openTab('dashboard', this)">
-            <i class="fas fa-home"></i>
-            <span>الرئيسية</span>
-        </a>
-        <a href="#" class="nav-item" onclick="openTab('users', this)">
-            <i class="fas fa-users"></i>
-            <span>المستثمرين</span>
-        </a>
-        <a href="#" class="nav-item" onclick="window.location.href='messages.html'">
-            <i class="fas fa-comments"></i>
-            <span>الرسائل</span>
-        </a>
-        <a href="#" class="nav-item" onclick="openTab('withdrawalsTab', this)">
-            <i class="fas fa-money-bill-wave"></i>
-            <span>السحوبات</span>
-        </a>
-        <a href="#" class="nav-item" onclick="openTab('logs', this)">
-            <i class="fas fa-history"></i>
-            <span>السجل</span>
-        </a>
-    </div>    
-
-    <div class="modal-overlay" id="sharePriceModal">
-        <div class="modal-box">
-            <div class="modal-header"><span>تحديث قيمة السهم</span><button class="modal-close" onclick="closeModal('sharePriceModal')">&times;</button></div>
-            <input type="text" id="manualSharePriceInput" placeholder="السعر الجديد">
-            <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="saveSharePrice()">حفظ القيمة</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="userModal">
-        <div class="modal-box">
-            <div class="modal-header"><span>إضافة مستثمر</span><button class="modal-close" onclick="closeModal('userModal')">&times;</button></div>
-            <input type="text" id="newUserName" placeholder="الاسم الكامل">
-            <input type="text" id="newUserPhone" placeholder="رقم الجوال">
-            <input type="text" id="newUserBalance" placeholder="الرصيد الابتدائي">
-            <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="confirmAddUser()">إضافة المستثمر</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="balanceModal">
-        <div class="modal-box">
-            <div class="modal-header"><span>تعديل المحفظة</span><button class="modal-close" onclick="closeModal('balanceModal')">&times;</button></div>
-            <input type="hidden" id="editUserId">
-            <input type="text" id="balanceAmount" placeholder="المبلغ (استخدم - للخصم)">
-            <button class="btn btn-warning" style="width:100%; margin-top:15px;" onclick="confirmEditBalance()">تحديث الرصيد</button>
-        </div>
-    </div>
-
-<div class="modal-overlay" id="assetModal">
-    <div class="modal-box" style="max-width: 500px;">
-        <div class="modal-header">
-            <span><i class="fas fa-shopping-cart"></i> تنفيذ عملية شراء للمستثمر</span>
-            <button class="modal-close" onclick="closeModal('assetModal')">&times;</button>
-        </div>
-        
-        <div class="modal-body" style="padding: 20px;">
-            <input type="hidden" id="assetUserId">
             
-            <label>اختر المنتج من السوق:</label>
-            <select id="assetSelect" onchange="updateProductDetails()" style="width:100%; padding:12px; margin-bottom:15px; border-radius:10px; border:2px solid #e2e8f0; font-weight: bold;"></select>
-
-            <div id="productDetailCard" style="background: #f8fafc; border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid #cbd5e1; display: none;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                    <span style="color: #64748b;">السعر للوحدة:</span>
-                    <span id="detailPrice" style="font-weight: bold; color: #1e293b;">0</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                    <span style="color: #64748b;">العائد المتوقع:</span>
-                    <span id="detailReturn" style="font-weight: bold; color: #10b981;">0%</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span style="color: #64748b;">المتوفر في المخزن:</span>
-                    <span id="detailStock" style="font-weight: bold; color: #f59e0b;">0</span>
+            <!-- Withdrawals Tab -->
+            <div id="withdrawalsTab" class="tab">
+                <div class="section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-money-bill-wave"></i> طلبات السحب المعلقة</h2>
+                    </div>
+                    <div id="withdrawalsContainer" class="withdraw-grid"></div>
                 </div>
             </div>
-
-            <label>الكمية المطلوبة:</label>
-            <input type="number" id="assetQty" value="1" min="1" oninput="calculateTotal()" style="width:100%; padding:12px; font-size:1.1rem; border-radius:10px; border:2px solid #e2e8f0;">
-
-            <div style="margin-top: 20px; padding-top: 15px; border-top: 2px dashed #e2e8f0;">
-                <div style="display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: 800;">
-                    <span>إجمالي التكلفة:</span>
-                    <span id="totalPurchasePrice" style="color: #2563eb;">0 ل.س</span>
+            
+            <!-- Profits Tab -->
+            <div id="profits" class="tab">
+                <div class="section" style="max-width: 600px; margin: auto; text-align: center;">
+                    <i class="fas fa-coins text-gradient" style="font-size: 4rem; margin-bottom: 20px;"></i>
+                    <h2 class="text-gradient">نظام توزيع الأرباح</h2>
+                    <div class="glass-effect-light" style="padding: 25px; border-radius: var(--radius-lg); margin: 20px 0; text-align: right;">
+                        <label style="font-weight:bold; display:block; margin-bottom:10px; color: var(--color-text-primary);">المبلغ الإجمالي للتوزيع:</label>
+                        <input type="text" id="profitInput" placeholder="أدخل المبلغ..." class="glass-effect-light" style="padding:15px; font-size:1.2rem;">
+                        <div id="profitPerShareHint" style="margin-top:10px; padding:10px; background: rgba(16, 185, 129, 0.1); color: var(--color-accent); border-radius: var(--radius-md); border: 1px solid rgba(16, 185, 129, 0.2); display:none; font-weight:bold;"></div>
+                        <p style="margin-top: 15px; color: var(--color-text-muted);">إجمالي الأسهم الحالية: <span id="d-total-shares-preview" style="font-weight: bold; color: var(--color-text-primary);">0</span></p>
+                    </div>
+                    <button class="btn btn-success" id="distributeBtn" style="width:100%; padding:15px; font-size: 1.1rem;" onclick="executeDistribution()">
+                        <i class="fas fa-check-circle"></i> اعتماد وتوزيع الأرباح
+                    </button>
                 </div>
-                <p id="balanceWarning" style="color: #ef4444; font-size: 0.85rem; margin-top: 5px; display: none;">⚠️ رصيد المستثمر غير كافٍ لهذه العملية</p>
             </div>
-
-            <button class="btn btn-purple" id="confirmPurchaseBtn" style="width:100%; margin-top:20px; padding: 15px; font-size: 1rem;" onclick="confirmAddAsset()">
-                <i class="fas fa-check-circle"></i> تأكيد عملية الشراء
-            </button>
+            
+            <!-- Logs Tab -->
+            <div id="logs" class="tab">
+                <div class="section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-history"></i> سجل النظام الزمني</h2>
+                    </div>
+                    <div id="logsTimeline"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom Navigation (Mobile Only) -->
+        <div class="bottom-nav">
+            <a href="#" class="nav-item active" onclick="openTab('dashboard', this)">
+                <i class="fas fa-home"></i>
+                <span>الرئيسية</span>
+            </a>
+            <a href="#" class="nav-item" onclick="openTab('users', this)">
+                <i class="fas fa-users"></i>
+                <span>المستثمرين</span>
+            </a>
+            <a href="#" class="nav-item" onclick="window.location.href='messages.html'">
+                <i class="fas fa-comments"></i>
+                <span>الرسائل</span>
+            </a>
+            <a href="#" class="nav-item" onclick="openTab('withdrawalsTab', this)">
+                <i class="fas fa-money-bill-wave"></i>
+                <span>السحوبات</span>
+            </a>
+            <a href="#" class="nav-item" onclick="openTab('logs', this)">
+                <i class="fas fa-history"></i>
+                <span>السجل</span>
+            </a>
+        </div>
+        
+        <!-- Modals -->
+        <div class="modal-overlay" id="sharePriceModal">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <span>تحديث قيمة السهم</span>
+                    <button class="modal-close" onclick="closeModal('sharePriceModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="manualSharePriceInput" placeholder="السعر الجديد" class="glass-effect-light">
+                    <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="saveSharePrice()">حفظ القيمة</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-overlay" id="userModal">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <span>إضافة مستثمر</span>
+                    <button class="modal-close" onclick="closeModal('userModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="newUserName" placeholder="الاسم الكامل" class="glass-effect-light">
+                    <input type="text" id="newUserPhone" placeholder="رقم الجوال" class="glass-effect-light" style="margin-top: 10px;">
+                    <input type="text" id="newUserBalance" placeholder="الرصيد الابتدائي" class="glass-effect-light" style="margin-top: 10px;">
+                    <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="confirmAddUser()">إضافة المستثمر</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-overlay" id="balanceModal">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <span>تعديل المحفظة</span>
+                    <button class="modal-close" onclick="closeModal('balanceModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editUserId">
+                    <input type="text" id="balanceAmount" placeholder="المبلغ (استخدم - للخصم)" class="glass-effect-light">
+                    <button class="btn btn-warning" style="width:100%; margin-top:15px;" onclick="confirmEditBalance()">تحديث الرصيد</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-overlay" id="assetModal">
+            <div class="modal-box" style="max-width: 500px;">
+                <div class="modal-header">
+                    <span><i class="fas fa-shopping-cart"></i> تنفيذ عملية شراء للمستثمر</span>
+                    <button class="modal-close" onclick="closeModal('assetModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="assetUserId">
+                    <label style="color: var(--color-text-primary); margin-bottom: 8px; display: block;">اختر المنتج من السوق:</label>
+                    <select id="assetSelect" onchange="updateProductDetails()" class="glass-effect-light" style="padding:12px; margin-bottom:15px;"></select>
+                    
+                    <div id="productDetailCard" class="glass-effect-light" style="border-radius: var(--radius-md); padding: 15px; margin-bottom: 15px; display: none;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: var(--color-text-muted);">السعر للوحدة:</span>
+                            <span id="detailPrice" style="font-weight: bold; color: var(--color-primary);">0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: var(--color-text-muted);">العائد المتوقع:</span>
+                            <span id="detailReturn" style="font-weight: bold; color: var(--color-accent);">0%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--color-text-muted);">المتوفر في المخزن:</span>
+                            <span id="detailStock" style="font-weight: bold; color: var(--color-warning);">0</span>
+                        </div>
+                    </div>
+                    
+                    <label style="color: var(--color-text-primary); margin-bottom: 8px; display: block;">الكمية المطلوبة:</label>
+                    <input type="number" id="assetQty" value="1" min="1" oninput="calculateTotal()" class="glass-effect-light" style="padding:12px; font-size:1.1rem;">
+                    
+                    <div style="margin-top: 20px; padding-top: 15px; border-top: 2px dashed var(--color-border);">
+                        <div style="display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: 800;">
+                            <span style="color: var(--color-text-primary);">إجمالي التكلفة:</span>
+                            <span id="totalPurchasePrice" style="color: var(--color-primary);">0 ل.س</span>
+                        </div>
+                        <p id="balanceWarning" style="color: var(--color-danger); font-size: 0.85rem; margin-top: 5px; display: none;">⚠️ رصيد المستثمر غير كافٍ لهذه العملية</p>
+                    </div>
+                    
+                    <button class="btn btn-purple" id="confirmPurchaseBtn" style="width:100%; margin-top:20px; padding: 15px; font-size: 1rem;" onclick="confirmAddAsset()">
+                        <i class="fas fa-check-circle"></i> تأكيد عملية الشراء
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
-</div>
-    <script>
-    function toggleMenu() {
-        // نحدد القائمة الجانبية
-        const sidebar = document.querySelector('.sidebar');
-        
-        // نقوم بإضافة أو إزالة كلاس اسمه 'active'
-        sidebar.classList.toggle('active');
-    }
 
-    // كود إضافي: لإغلاق القائمة عند الضغط خارجها (اختياري لكن احترافي)
-    document.addEventListener('click', function(event) {
-        const sidebar = document.querySelector('.sidebar');
-        const menuBtn = document.querySelector('.menu-toggle');
+    <script>
+    // JavaScript functions to handle the new design interactions
+    function toggleMenu() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const menuToggle = document.getElementById('menuToggle');
         
-        // إذا كانت الضغطة خارج القائمة وخارج الزر، والقائمة مفتوحة -> أغلقها
-        if (!sidebar.contains(event.target) && !menuBtn.contains(event.target) && sidebar.classList.contains('active')) {
+        sidebar.classList.toggle('active');
+        menuToggle.innerHTML = sidebar.classList.contains('active') ? 
+            '<i class="fas fa-times"></i>' : '<i class="fas fa-bars"></i>';
+        
+        // Add overlay when sidebar is active on mobile
+        if (window.innerWidth <= 768) {
+            if (sidebar.classList.contains('active')) {
+                const overlay = document.createElement('div');
+                overlay.id = 'sidebarOverlay';
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    right: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    backdrop-filter: blur(2px);
+                    z-index: 99;
+                `;
+                overlay.onclick = toggleMenu;
+                document.body.appendChild(overlay);
+            } else {
+                const overlay = document.getElementById('sidebarOverlay');
+                if (overlay) overlay.remove();
+            }
+        } else {
+            // Desktop: toggle collapsed state
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+        }
+    }
+    
+    // Tab switching function
+    function openTab(tabName, element) {
+        // Hide all tabs
+        const tabs = document.getElementsByClassName('tab');
+        for (let tab of tabs) {
+            tab.classList.remove('active');
+        }
+        
+        // Show selected tab
+        document.getElementById(tabName).classList.add('active');
+        
+        // Update active state in sidebar
+        const sidebarButtons = document.querySelectorAll('.nav button');
+        for (let button of sidebarButtons) {
+            button.classList.remove('active');
+        }
+        
+        // Update active state in bottom nav
+        const bottomNavItems = document.querySelectorAll('.nav-item');
+        for (let item of bottomNavItems) {
+            item.classList.remove('active');
+        }
+        
+        // Set active state on clicked element
+        if (element) element.classList.add('active');
+        
+        // Close sidebar on mobile after selection
+        if (window.innerWidth <= 768) {
+            toggleMenu();
+        }
+    }
+    
+    // Modal handling functions
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+    }
+    
+    // Close modals when clicking outside
+    window.addEventListener('click', function(event) {
+        const modals = document.querySelectorAll('.modal-overlay');
+        modals.forEach(modal => {
+            if (event.target === modal) {
+                closeModal(modal.id);
+            }
+        });
+    });
+    
+    // Toast notification function
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = 'toast-msg';
+        
+        let icon = 'fas fa-info-circle';
+        if (type === 'success') icon = 'fas fa-check-circle';
+        if (type === 'warning') icon = 'fas fa-exclamation-triangle';
+        if (type === 'error') icon = 'fas fa-times-circle';
+        
+        toast.innerHTML = `
+            <i class="${icon}" style="color: ${type === 'success' ? 'var(--color-accent)' : 
+                type === 'warning' ? 'var(--color-warning)' : 
+                type === 'error' ? 'var(--color-danger)' : 'var(--color-primary)'}"></i>
+            <span>${message}</span>
+        `;
+        
+        document.getElementById('toastContainer').appendChild(toast);
+        
+        // Trigger animation
+        setTimeout(() => toast.classList.add('show'), 10);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+    
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set active tab based on URL hash or default to dashboard
+        const hash = window.location.hash.substring(1);
+        const defaultTab = hash || 'dashboard';
+        openTab(defaultTab);
+        
+        // Add animation to stat cards on load
+        const statCards = document.querySelectorAll('.stat-card');
+        statCards.forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.1}s`;
+            card.classList.add('slide-in-right');
+        });
+        
+        // Show welcome toast
+        setTimeout(() => {
+            showToast('مرحباً بك في لوحة التحكم المحدثة!', 'success');
+        }, 1000);
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+        // Close sidebar on mobile when resizing to desktop
+        if (window.innerWidth > 768) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (overlay) overlay.remove();
             sidebar.classList.remove('active');
+            document.getElementById('menuToggle').innerHTML = '<i class="fas fa-bars"></i>';
         }
     });
     </script>
 
     <script type="module" src="control.js"></script>
 </body>
-</html> 
+</html>
