@@ -1,13 +1,1133 @@
-/*************************************************
-* 1. Firebase Imports & Config
- *************************************************/
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مركز الرسائل | لوحة تحكم التاجر</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap">
+
+<style>
+:root {
+    --primary: #10b981;
+    --primary-hover: #059669;
+    --primary-light: #d1fae5;
+    --secondary: #8b5cf6;
+    --dark: #0f172a;
+    --dark-light: #1e293b;
+    --light: #f8fafc;
+    --border: #e2e8f0;
+    --text: #334155;
+    --text-light: #64748b;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --info: #3b82f6;
+    --radius: 12px;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Cairo', sans-serif;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+}
+
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 15px;
+    height: 100vh;
+    background: var(--light);
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid var(--border);
+    border-top: 4px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.sidebar {
+    width: 280px;
+    background: linear-gradient(180deg, var(--dark) 0%, var(--dark-light) 100%);
+    color: white;
+    position: fixed;
+    right: 0;
+    top: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    box-shadow: var(--shadow-lg);
+}
+
+.sidebar-header {
+    padding: 25px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+}
+
+.logo-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--primary);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.admin-info {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.admin-avatar {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: white;
+}
+
+.nav {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.nav-item {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    padding: 14px 18px;
+    border-radius: var(--radius);
+    text-align: right;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.nav-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+}
+
+.nav-item.active {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.nav-item i {
+    width: 20px;
+    text-align: center;
+}
+
+.notification-badge {
+    background: var(--danger);
+    color: white;
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-radius: 20px;
+    min-width: 20px;
+    text-align: center;
+    display: inline-block;
+}
+
+.logout-btn {
+    width: 100%;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+    padding: 14px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    margin-top: 20px;
+}
+
+.logout-btn:hover {
+    background: var(--danger);
+    color: white;
+}
+
+.main-content {
+    margin-right: 280px;
+    width: calc(100% - 280px);
+    height: 100vh;
+    display: flex;
+}
+
+.messenger-panel {
+    width: 380px;
+    background: white;
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    position: relative;
+    box-shadow: var(--shadow);
+}
+
+.messenger-panel.collapsed {
+    width: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.panel-header {
+    padding: 25px;
+    border-bottom: 1px solid var(--border);
+    background: white;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.panel-header h2 {
+    margin: 0 0 15px;
+    font-size: 1.5rem;
+    color: var(--dark);
+}
+
+.search-box {
+    position: relative;
+    width: 100%;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 12px 45px 12px 15px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Cairo', sans-serif;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.search-box i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-light);
+}
+
+.users-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+}
+
+.user-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 18px;
+    margin-bottom: 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    border: 2px solid transparent;
+}
+
+.user-item:hover {
+    background: var(--light);
+    border-color: var(--primary-light);
+}
+
+.user-item.active {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    box-shadow: var(--shadow);
+}
+
+.user-avatar {
+    width: 55px;
+    height: 55px;
+    border-radius: var(--radius);
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.user-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-info h4 {
+    margin: 0 0 5px;
+    font-size: 1.1rem;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-status {
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--primary);
+    color: white;
+}
+
+.user-status.offline {
+    background: var(--text-light);
+}
+
+.user-last-msg {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 5px;
+}
+
+.user-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.user-time {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.unread-badge {
+    background: var(--danger);
+    color: white;
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    min-width: 25px;
+    text-align: center;
+}
+
+.no-users {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-light);
+}
+
+.chat-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    position: relative;
+}
+
+.chat-header {
+    padding: 20px 25px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: white;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.chat-user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.chat-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.chat-user-details h3 {
+    margin: 0 0 5px;
+    font-size: 1.3rem;
+    color: var(--dark);
+}
+
+.chat-user-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    animation: pulse 2s infinite;
+}
+
+.status-dot.offline {
+    background: var(--text-light);
+    animation: none;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.messages-container {
+    flex: 1;
+    padding: 25px;
+    overflow-y: auto;
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+    position: relative;
+}
+
+.no-chat-selected {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-light);
+    text-align: center;
+    padding: 20px;
+}
+
+.no-chat-selected i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    opacity: 0.2;
+}
+
+.message-row {
+    display: flex;
+    margin-bottom: 20px;
+    animation: messageIn 0.3s ease;
+}
+
+@keyframes messageIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-row.admin {
+    justify-content: flex-end;
+}
+
+.message-bubble {
+    max-width: 70%;
+    padding: 15px 20px;
+    border-radius: 20px;
+    position: relative;
+    box-shadow: var(--shadow);
+    word-wrap: break-word;
+}
+
+.message-bubble.admin {
+    background: var(--primary);
+    color: white;
+    border-bottom-right-radius: 5px;
+}
+
+.message-bubble.user {
+    background: white;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 5px;
+}
+
+.message-text {
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-bottom: 8px;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.date-separator {
+    text-align: center;
+    margin: 25px 0;
+    position: relative;
+}
+
+.date-separator span {
+    background: white;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: var(--text-light);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+.chat-footer {
+    padding: 20px 25px;
+    border-top: 1px solid var(--border);
+    background: white;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.message-input-container {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.message-input-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+.message-input {
+    width: 100%;
+    padding: 16px 20px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Cairo', sans-serif;
+    font-size: 1rem;
+    resize: none;
+    min-height: 56px;
+    max-height: 120px;
+    transition: all 0.3s ease;
+}
+
+.message-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.send-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius);
+    background: var(--primary);
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.send-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.send-btn:disabled {
+    background: var(--border);
+    cursor: not-allowed;
+    transform: none;
+}
+
+.info-panel {
+    width: 320px;
+    background: white;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow);
+}
+
+.info-panel.collapsed {
+    width: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.info-header {
+    padding: 25px;
+    border-bottom: 1px solid var(--border);
+}
+
+.info-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: var(--dark);
+}
+
+.info-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 25px;
+}
+
+.user-details {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.user-details-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 600;
+    margin: 0 auto 20px;
+    box-shadow: var(--shadow-lg);
+}
+
+.user-details h2 {
+    margin: 0 0 10px;
+    font-size: 1.5rem;
+    color: var(--dark);
+}
+
+.info-section {
+    margin-bottom: 30px;
+}
+
+.info-section h4 {
+    margin: 0 0 15px;
+    font-size: 1.1rem;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.info-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.info-card {
+    background: var(--light);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+}
+
+.info-card i {
+    width: 40px;
+    height: 40px;
+    background: var(--primary-light);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    font-size: 1.2rem;
+}
+
+.info-card-content {
+    flex: 1;
+}
+
+.info-card-label {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin-bottom: 3px;
+}
+
+.info-card-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.action-btn {
+    padding: 14px;
+    border-radius: var(--radius);
+    border: none;
+    font-family: 'Cairo', sans-serif;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+}
+
+.action-btn.primary {
+    background: var(--primary);
+    color: white;
+}
+
+.action-btn.primary:hover {
+    background: var(--primary-hover);
+}
+
+.action-btn.danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.action-btn.danger:hover {
+    background: var(--danger);
+    color: white;
+}
+
+.no-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 20px;
+    color: var(--text-light);
+    text-align: center;
+}
+
+.toggle-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 60px;
+    background: var(--dark);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    z-index: 20;
+    transition: all 0.3s ease;
+}
+
+.toggle-btn:hover {
+    background: var(--dark-light);
+    width: 35px;
+}
+
+.toggle-btn.right {
+    right: 0;
+    border-radius: 8px 0 0 8px;
+}
+
+.toggle-btn.left {
+    left: 0;
+    border-radius: 0 8px 8px 0;
+}
+
+.notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 50px;
+    z-index: 10000;
+    display: none;
+    animation: slideDown 0.3s ease;
+    box-shadow: var(--shadow-lg);
+    min-width: 300px;
+    text-align: center;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateX(-50%) translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 1200px) {
+    .sidebar {
+        width: 250px;
+    }
+    
+    .main-content {
+        margin-right: 250px;
+        width: calc(100% - 250px);
+    }
+    
+    .messenger-panel {
+        width: 350px;
+    }
+    
+    .info-panel {
+        width: 300px;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+    }
+    
+    .sidebar.active {
+        transform: translateX(0);
+    }
+    
+    .main-content {
+        margin-right: 0;
+        width: 100%;
+    }
+    
+    .mobile-menu-btn {
+        display: block;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        background: var(--primary);
+        color: white;
+        border: none;
+        width: 50px;
+        height: 50px;
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-size: 1.3rem;
+    }
+}
+</style>
+</head>
+
+<body>
+<div class="loading" id="loadingScreen">
+    <div class="spinner"></div>
+    <p>جاري تحميل لوحة التحكم...</p>
+</div>
+
+<button class="mobile-menu-btn" id="mobileMenuBtn" style="display: none;">
+    <i class="fas fa-bars"></i>
+</button>
+
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo">
+            <div class="logo-icon">
+                <i class="fas fa-comments"></i>
+            </div>
+            <span>تاجر Admin</span>
+        </div>
+    </div>
+    
+    <div class="admin-info">
+        <div class="admin-avatar" id="adminAvatar">
+            A
+        </div>
+        <div class="admin-details">
+            <h4 id="adminName">المدير</h4>
+            <p id="adminEmail">admin@tajer.com</p>
+        </div>
+    </div>
+    
+    <div class="nav">
+        <button class="nav-item active" id="navMessages">
+            <i class="fas fa-comments"></i>
+            <span>الرسائل</span>
+            <span class="notification-badge" id="unreadCount">0</span>
+        </button>
+        
+        <button class="nav-item" onclick="window.location.href='admin.html'">
+            <i class="fas fa-home"></i>
+            <span>لوحة التحكم</span>
+        </button>
+        
+       
+    </div>
+    
+    <button class="logout-btn" id="logoutBtn">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>تسجيل الخروج</span>
+    </button>
+</div>
+
+<div class="main-content" id="mainContent">
+    <div class="messenger-panel" id="messengerPanel">
+        <div class="panel-header">
+            <h2>المحادثات</h2>
+            <div class="search-box">
+                <input type="text" id="userSearch" placeholder="ابحث عن مستخدم...">
+                <i class="fas fa-search"></i>
+            </div>
+        </div>
+        
+        <div class="users-list" id="usersList">
+            <div class="no-users">
+                <i class="fas fa-users"></i>
+                <p>لا يوجد مستخدمين</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="chat-panel">
+        <button class="toggle-btn right" onclick="togglePanel('messengerPanel')">
+            <i class="fas fa-users"></i>
+        </button>
+        
+        <div class="chat-header">
+            <div class="chat-user-info" id="chatUserInfo" style="display: none;">
+                <div class="chat-avatar" id="chatAvatar">
+                    U
+                </div>
+                <div class="chat-user-details">
+                    <h3 id="chatUserName">المستخدم</h3>
+                    <div class="chat-user-status">
+                        <div class="status-dot" id="statusDot"></div>
+                        <span id="statusText">غير متصل</span>
+                    </div>
+                </div>
+            </div>
+            <div id="noChatSelected">
+                <h3>اختر محادثة</h3>
+            </div>
+        </div>
+        
+        <div class="messages-container" id="messagesContainer">
+            <div class="no-chat-selected" id="noChatMessage">
+                <i class="fas fa-comments"></i>
+                <h3>مركز الرسائل</h3>
+                <p>اختر محادثة من القائمة لبدء الدردشة</p>
+            </div>
+            
+            <div id="messagesBox" style="display: none;"></div>
+        </div>
+        
+        <div class="chat-footer" id="chatFooter" style="display: none;">
+            <div class="message-input-container">
+                <div class="message-input-wrapper">
+                    <textarea class="message-input" id="messageInput" 
+                              placeholder="اكتب رسالتك هنا..." 
+                              rows="1"></textarea>
+                </div>
+                <button class="send-btn" id="sendBtn" disabled>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+        
+        <button class="toggle-btn left" onclick="togglePanel('infoPanel')">
+            <i class="fas fa-info-circle"></i>
+        </button>
+    </div>
+    
+    <div class="info-panel collapsed" id="infoPanel">
+        <div class="info-header">
+            <h3>معلومات المستخدم</h3>
+        </div>
+        
+        <div class="info-content" id="infoContent">
+            <div class="no-info" id="noUserInfo">
+                <i class="fas fa-user"></i>
+                <p>اختر مستخدم لعرض المعلومات</p>
+            </div>
+            
+            <div id="userInfo" style="display: none;">
+                <div class="user-details">
+                    <div class="user-details-avatar" id="userInfoAvatar">
+                        U
+                    </div>
+                    <h2 id="userInfoName">المستخدم</h2>
+                    <p class="user-email" id="userInfoEmail">user@example.com</p>
+                </div>
+                
+                <div class="info-section">
+                    <h4>
+                        <i class="fas fa-wallet"></i>
+                        <span>المعلومات المالية</span>
+                    </h4>
+                    <div class="info-cards">
+                        <div class="info-card">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <div class="info-card-content">
+                                <div class="info-card-label">الرصيد الحالي</div>
+                                <div class="info-card-value" id="userBalance">0 ل.س</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <i class="fas fa-chart-line"></i>
+                            <div class="info-card-content">
+                                <div class="info-card-label">إجمالي الاستثمارات</div>
+                                <div class="info-card-value" id="totalInvestments">0 ل.س</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <i class="fas fa-coins"></i>
+                            <div class="info-card-content">
+                                <div class="info-card-label">الأرباح</div>
+                                <div class="info-card-value" id="totalProfit">0 ل.س</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-section">
+                    <h4>
+                        <i class="fas fa-info-circle"></i>
+                        <span>معلومات الحساب</span>
+                    </h4>
+                    <div class="info-cards">
+                        <div class="info-card">
+                            <i class="fas fa-calendar-alt"></i>
+                            <div class="info-card-content">
+                                <div class="info-card-label">تاريخ التسجيل</div>
+                                <div class="info-card-value" id="joinDate">2024-01-01</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <i class="fas fa-check-circle"></i>
+                            <div class="info-card-content">
+                                <div class="info-card-label">حالة الحساب</div>
+                                <div class="info-card-value" id="accountStatus">نشط</div>
+                            </div>
+                        </div>
+                        <div class="info-card">
+                            <i class="fas fa-comments"></i>
+                            <div class="info-card-content">
+                                <div class="info-card-label">رسائل غير مقروءة</div>
+                                <div class="info-card-value" id="userUnread">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="action-btn primary" onclick="viewUserProfile()">
+                        <i class="fas fa-external-link-alt"></i>
+                        <span>فتح صفحة المستخدم</span>
+                    </button>
+                    <button class="action-btn danger" onclick="blockUser()">
+                        <i class="fas fa-ban"></i>
+                        <span>حظر المستخدم</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="notificationContainer"></div>
+
+<audio id="messageSound" preload="auto">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-message-pop-alert-2354.mp3" type="audio/mpeg">
+</audio>
+
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import {
-    getFirestore, collection, addDoc, getDocs, deleteDoc,
-    updateDoc, doc, increment, arrayUnion, setDoc, getDoc,
-    serverTimestamp, onSnapshot, query, orderBy, limit, writeBatch
+import { 
+    getFirestore, collection, addDoc, query, orderBy, onSnapshot, 
+    serverTimestamp, updateDoc, doc, getDoc, setDoc, where, getDocs,
+    Timestamp
 } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+import { 
+    getAuth, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCI_0-7KsqnssqkOSkNVK0FmuRokDNXriE",
@@ -22,739 +1142,488 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-/*************************************************
- * 2. Helpers & Formatters (أدوات التنسيق)
- *************************************************/
+let currentUserId = null;
+let unsubscribeMessages = null;
+let unsubscribeUsers = null;
+let usersList = [];
 
-const formatMoney = (num) => {
-    if (!num && num !== 0) return "0";
-    return Number(num).toLocaleString('en-US');
-};
+const loadingScreen = document.getElementById('loadingScreen');
+const unreadCountElement = document.getElementById('unreadCount');
+const usersListElement = document.getElementById('usersList');
+const userSearch = document.getElementById('userSearch');
+const chatUserInfo = document.getElementById('chatUserInfo');
+const noChatSelected = document.getElementById('noChatSelected');
+const chatAvatar = document.getElementById('chatAvatar');
+const chatUserName = document.getElementById('chatUserName');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+const messagesContainer = document.getElementById('messagesContainer');
+const noChatMessage = document.getElementById('noChatMessage');
+const messagesBox = document.getElementById('messagesBox');
+const chatFooter = document.getElementById('chatFooter');
+const messageInput = document.getElementById('messageInput');
+const sendBtn = document.getElementById('sendBtn');
+const userInfo = document.getElementById('userInfo');
+const noUserInfo = document.getElementById('noUserInfo');
+const userInfoAvatar = document.getElementById('userInfoAvatar');
+const userInfoName = document.getElementById('userInfoName');
+const userInfoEmail = document.getElementById('userInfoEmail');
+const userBalance = document.getElementById('userBalance');
+const totalInvestments = document.getElementById('totalInvestments');
+const totalProfit = document.getElementById('totalProfit');
+const joinDate = document.getElementById('joinDate');
+const accountStatus = document.getElementById('accountStatus');
+const userUnread = document.getElementById('userUnread');
+const notificationContainer = document.getElementById('notificationContainer');
+const messageSound = document.getElementById('messageSound');
+const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+const sidebar = document.getElementById('sidebar');
+const mainContent = document.getElementById('mainContent');
 
-const cleanNumber = (str) => {
-    if (!str) return 0;
-    // تم تعديلها لتسمح بالإشارة السالبة (-) من أجل عمليات خصم الرصيد
-    return Number(String(str).replace(/[^0-9.-]/g, ''));
-};
-
-const attachMoneyInputListener = (inputId) => {
-    const el = document.getElementById(inputId);
-    if (!el) return;
-    el.addEventListener('input', function (e) {
-        let rawValue = this.value.replace(/[^0-9-]/g, '');
-        if (!rawValue) { this.value = ""; return; }
-        this.value = Number(rawValue).toLocaleString('en-US');
-    });
-};
-
-/*************************************************
- * 3. UI System (التنبيهات والنوافذ)
- *************************************************/
-
-function showToast(message, type = 'success') {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-    const box = document.createElement('div');
-    box.className = `toast-msg ${type}`;
-    box.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${message}`;
-    container.appendChild(box);
-    setTimeout(() => { box.style.opacity = '1'; box.style.transform = 'translateY(0)'; }, 10);
-    setTimeout(() => { box.style.opacity = '0'; setTimeout(() => box.remove(), 300); }, 3000);
-}
-
-// دالة التأكيد المخصصة الأصلية (مع إصلاح لضمان عمل Promise)
-function askConfirm(title, message) {
-    return new Promise((resolve) => {
-        const modal = document.getElementById('confirmModal');
-        document.getElementById('confirmTitle').innerText = title;
-        document.getElementById('confirmMessage').innerText = message;
-        modal.classList.add('show');
-
-        const yesBtn = document.getElementById('confirmYesBtn');
-        const noBtn = document.getElementById('confirmNoBtn');
-
-        const newYes = yesBtn.cloneNode(true);
-        const newNo = noBtn.cloneNode(true);
-
-        yesBtn.parentNode.replaceChild(newYes, yesBtn);
-        noBtn.parentNode.replaceChild(newNo, noBtn);
-
-        newYes.onclick = () => {
-            modal.classList.remove('show');
-            resolve(true);
-        };
-
-        newNo.onclick = () => {
-            modal.classList.remove('show');
-            resolve(false);
-        };
-    });
-}
-
-
-function setBtnLoading(btn, isLoading) {
-    if (!btn) return;
-    if (isLoading) {
-        btn.dataset.text = btn.innerText;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المعالجة...';
-        btn.disabled = true;
-    } else {
-        btn.innerText = btn.dataset.text || 'تأكيد';
-        btn.disabled = false;
-    }
-}
-
-/*************************************************
- * 4. Core Logic & Data
- *************************************************/
-let globalTotalShares = 0;
-let marketList = [];
-let currentSharePrice = 0;
-
-onAuthStateChanged(auth, (user) => {
-    if (!user || user.email !== "admin33@tajer44.com") {
-        window.location.href = "index.html";
-    } else {
-        initApp();
-        setupInputs();
-    }
-});
-
-
-
-
-function setupInputs() {
-    ['profitInput', 'manualSharePriceInput', 'newUserBalance', 'balanceAmount', 'pPrice', 'pQty'].forEach(id => attachMoneyInputListener(id));
-
-    const pInput = document.getElementById("profitInput");
-    if (pInput) {
-        pInput.addEventListener("input", () => {
-            const val = cleanNumber(pInput.value);
-            const hint = document.getElementById("profitPerShareHint");
-            if (val > 0 && globalTotalShares > 0) {
-                const share = val / globalTotalShares;
-                hint.innerHTML = `نصيب السهم الواحد: <strong>${share.toFixed(2)}</strong> ل.س`;
-                hint.style.display = "block";
-            } else {
-                hint.style.display = "none";
+async function initApp() {
+    try {
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = "admin-login.html";
+                return;
             }
+            
+            const adminDoc = await getDoc(doc(db, "admins", user.uid));
+            if (!adminDoc.exists()) {
+                showNotification("خطأ في الصلاحيات", "ليس لديك صلاحية الدخول كمدير", "error");
+                setTimeout(() => signOut(auth), 2000);
+                return;
+            }
+            
+            const adminData = adminDoc.data();
+            document.getElementById('adminName').textContent = adminData.name || "المدير";
+            document.getElementById('adminEmail').textContent = adminData.email || user.email;
+            document.getElementById('adminAvatar').textContent = (adminData.name || "م").charAt(0);
+            
+            await loadUsers();
+            setupEventListeners();
+            
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 500);
+            
+            checkUnreadMessages();
         });
+    } catch (error) {
+        console.error("Error initializing app:", error);
+        showNotification("خطأ في التحميل", "حدث خطأ أثناء تحميل التطبيق", "error");
     }
 }
 
-function initApp() {
-    onSnapshot(doc(db, "global_settings", "market_prices"), (snap) => {
-        if (snap.exists()) {
-            currentSharePrice = Number(snap.data().cow) || 0;
-            document.getElementById("d-share-value").innerText = formatMoney(currentSharePrice);
-            loadInvestors();
-        }
-    });
-
-    loadInvestors();
-    loadMarket();
-    loadLogs();
-    loadWithdrawals(); // تم تفعيلها هنا لتعمل عند تشغيل التطبيق
-}
-
-function loadInvestors() {
-    // نستخدم onSnapshot لمراقبة التغييرات فورياً
-    // نستخدم orderBy لترتيب المستثمرين حسب تاريخ الانضمام (كما في الكود البسيط)
-    const q = query(collection(db, "users"), orderBy("joinDate", "desc"));
-
-    onSnapshot(q, (snap) => {
-        const table = document.querySelector("#usersTable tbody");
-        if (!table) return;
-
-        table.innerHTML = ""; // تفريغ الجدول لبدء الرسم من جديد
-
-        let totalShares = 0;
-        let totalCapital = 0;
-        let investorsCount = 0;
-        let idx = 1;
-
-        snap.forEach(docSnap => {
-            investorsCount++;
-            const u = docSnap.data();
-
-            // 1. جلب البيانات بالمسميات البسيطة (اسم، بريد، هاتف، تاريخ)
-            const name = u.name || "مستخدم جديد";
-            const phone = u.phone || "---";
-            const email = u.email || "لم يتم إضافة بريد";
+async function loadUsers() {
+    try {
+        const usersQuery = query(collection(db, "users"), orderBy("name"));
+        
+        unsubscribeUsers = onSnapshot(usersQuery, async (snapshot) => {
+            usersList = [];
+            const usersListHTML = [];
+            let hasUsers = false;
             
-            // معالجة تاريخ الانضمام (من الكود البسيط)
-            let dateStr = "غير مسجل";
-            if (u.joinDate) {
-                // إذا كان التاريخ مخزن كـ Timestamp في فايربيس
-                dateStr = new Date(u.joinDate.toDate()).toLocaleDateString('ar-SA');
-            }
-
-            // 2. حسابات الاستثمار (الوظائف المتقدمة)
-            const assets = u.assets || [];
-            const invested = assets.reduce((sum, item) => sum + (Number(item.priceAtPurchase) || 0), 0);
-            
-            // حساب الأسهم بناءً على سعر السهم الحالي (currentSharePrice)
-            const price = (typeof currentSharePrice !== 'undefined' && currentSharePrice > 0) ? currentSharePrice : 1;
-            const myShares = invested / price;
-
-            totalShares += myShares;
-            totalCapital += invested;
-
-            // 3. تجميع الممتلكات لنص واحد (مثال: بقرة (2))
-            const assetMap = {};
-            assets.forEach(a => assetMap[a.name] = (assetMap[a.name] || 0) + 1);
-            const assetStr = Object.entries(assetMap).map(([k, v]) => `${k} (${v})`).join("، ") || "-";
-
-            // 4. عرض البيانات في الجدول (مطابق تماماً لـ HTML الخاص بك)
-            table.innerHTML += `
-                <tr>
-                    <td>${idx++}</td> <td>
-                        <strong>${name}</strong><br>
-                        <span style="font-size:0.8em; color:#666;">${phone}</span><br>
-                        <span style="font-size:0.75em; color:#999;">${email}</span><br>
-                        <small style="color:#aaa;">انضم في: ${dateStr}</small>
-                    </td> <td style="color:#2563eb; font-weight:bold;">${formatMoney(u.balance || 0)}</td> <td style="font-size:0.85em;">${assetStr}</td> <td>${formatMoney(invested)}</td> <td style="color:#16a34a; font-weight:bold;">${myShares.toFixed(2)}</td> <td>
-                        <button class="btn-icon purple" onclick="openAssetModal('${docSnap.id}')" title="شراء"><i class="fas fa-shopping-cart"></i></button>
-                        <button class="btn-icon orange" onclick="openBalanceModal('${docSnap.id}')" title="الرصيد"><i class="fas fa-coins"></i></button>
-                        <button class="btn-icon red" onclick="deleteUser('${docSnap.id}')" title="حذف"><i class="fas fa-trash"></i></button>
-                    </td> </tr>
-            `;
-        });
-
-        // تحديث أرقام الإحصائيات في أعلى الصفحة
-        updateText("d-users", investorsCount);
-        updateText("d-capital", formatMoney(totalCapital));
-        updateText("d-total-shares", totalShares.toFixed(2));
-    });
-}
-// دالة جلب طلبات السحب مع تحديث مباشر
-async function loadWithdrawals() {
-    const container = document.getElementById('withdrawalsContainer');
-    if(!container) return;
-
-    onSnapshot(collection(db, "withdrawals"), (snap) => {
-        container.innerHTML = '';
-        if(snap.empty) {
-            container.innerHTML = '<p style="text-align:center; grid-column: 1/-1;">لا توجد طلبات معلقة</p>';
-            return;
-        }
-
-        snap.forEach(docRef => {
-            const data = docRef.data();
-            container.innerHTML += `
-                <div class="withdraw-card">
-                    <h4>${data.userName}</h4>
-                    <div class="price">${Number(data.amount).toLocaleString()} ل.س</div>
-                    <div class="date">${data.date || ''}</div>
-                    <div class="actions">
-                        <button class="btn-approve" onclick="confirmAction('قبول السحب', 'هل أنت متأكد من تحويل المبلغ؟', () => processWithdraw('${docRef.id}', true))" style="background:#dcfce7; color:#166534; padding:8px; border-radius:5px; border:none; cursor:pointer;">موافقة</button>
-                        <button class="btn-reject" onclick="confirmAction('رفض الطلب', 'هل تريد رفض هذا الطلب؟', () => processWithdraw('${docRef.id}', false))" style="background:#fee2e2; color:#991b1b; padding:8px; border-radius:5px; border:none; cursor:pointer;">رفض</button>
+            for (const docSnapshot of snapshot.docs) {
+                const user = {
+                    id: docSnapshot.id,
+                    ...docSnapshot.data()
+                };
+                usersList.push(user);
+                
+                const lastMessage = await getLastMessage(user.id);
+                const unreadCount = await getUnreadCount(user.id);
+                
+                usersListHTML.push(`
+                    <div class="user-item" data-user-id="${user.id}">
+                        <div class="user-avatar ${user.isOnline ? '' : 'offline'}">
+                            ${user.name.charAt(0)}
+                        </div>
+                        <div class="user-info">
+                            <h4>
+                                ${user.name}
+                                <span class="user-status ${user.isOnline ? '' : 'offline'}">
+                                    ${user.isOnline ? 'متصل' : 'غير متصل'}
+                                </span>
+                            </h4>
+                            <div class="user-last-msg">${lastMessage || 'لا توجد رسائل'}</div>
+                            <div class="user-meta">
+                                <div class="user-time">${user.lastSeen ? formatTime(user.lastSeen.toDate()) : ''}</div>
+                                ${unreadCount > 0 ? `<div class="unread-badge">${unreadCount}</div>` : ''}
+                            </div>
+                        </div>
                     </div>
+                `);
+                
+                hasUsers = true;
+            }
+            
+            usersListElement.innerHTML = hasUsers ? usersListHTML.join('') : `
+                <div class="no-users">
+                    <i class="fas fa-users"></i>
+                    <p>لا يوجد مستخدمين</p>
                 </div>
             `;
+            
+            document.querySelectorAll('.user-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const userId = item.getAttribute('data-user-id');
+                    const user = usersList.find(u => u.id === userId);
+                    openChat(userId, user);
+                    markMessagesAsRead(userId);
+                });
+            });
+            
+            updateTotalUnreadCount();
         });
-    });
+    } catch (error) {
+        console.error("Error loading users:", error);
+    }
 }
 
-// دالة معالجة السحب (قبول أو رفض) - تمت إضافتها لتكتمل الوظيفة
-window.processWithdraw = async (reqId, isApproved) => {
+async function getLastMessage(userId) {
     try {
-        const docRef = doc(db, "withdrawals", reqId);
-        const snap = await getDoc(docRef);
-        if(!snap.exists()) return;
-        const reqData = snap.data();
-
-        if (isApproved) {
-            // خصم من رصيد المستخدم
-            const userRef = doc(db, "users", reqData.userId);
-            await updateDoc(userRef, { balance: increment(-reqData.amount) });
-            logAction(`موافقة سحب مبلغ ${reqData.amount} للمستخدم ${reqData.userName}`);
-            showToast("تمت الموافقة وخصم الرصيد");
-        } else {
-            logAction(`رفض طلب سحب للمستخدم ${reqData.userName}`);
-            showToast("تم رفض الطلب", "error");
+        const messagesQuery = query(
+            collection(db, "chats", userId, "messages"),
+            orderBy("timestamp", "desc"),
+        );
+        const snapshot = await getDocs(messagesQuery);
+        if (!snapshot.empty) {
+            const lastMessage = snapshot.docs[0].data();
+            return lastMessage.text.substring(0, 30) + (lastMessage.text.length > 30 ? '...' : '');
         }
-        // حذف الطلب بعد المعالجة
-        await deleteDoc(docRef);
-    } catch (e) {
-        showToast("حدث خطأ في المعالجة", "error");
+    } catch (error) {
+        console.error("Error getting last message:", error);
     }
-};
-
-function loadMarket() {
-    onSnapshot(collection(db, "market_items"), (snap) => {
-        const table = document.querySelector("#marketTable tbody");
-        const select = document.getElementById("assetSelect");
-        if(!table || !select) return;
-
-        table.innerHTML = "";
-        select.innerHTML = "<option value=''>-- اختر المنتج --</option>";
-        marketList = [];
-
-        snap.forEach(docSnap => {
-            const p = docSnap.data();
-            const item = { id: docSnap.id, ...p };
-            marketList.push(item);
-
-            table.innerHTML += `
-                <tr>
-                    <td>${p.name}</td>
-                    <td>${formatMoney(p.price)}</td>
-                    <td>${p.returnRate || 0}%</td>
-                    <td>${p.quantity || 0}</td>
-                    <td><span class="badge ${p.quantity > 0 ? 'bg-success' : 'bg-danger'}">${p.quantity > 0 ? 'متوفر' : 'نفذ'}</span></td>
-                    <td><button class="btn-icon red" onclick="deleteProduct('${docSnap.id}')"><i class="fas fa-trash"></i></button></td>
-                </tr>
-            `;
-            if (p.quantity > 0) {
-                select.innerHTML += `<option value="${item.id}">${p.name} - ${formatMoney(p.price)} ل.س</option>`;
-            }
-        });
-    });
+    return null;
 }
 
-const assetSelect = document.getElementById("assetSelect");
-const qtyInfo = document.getElementById("availableQtyInfo");
-const qtyInput = document.getElementById("assetQty");
-
-if (assetSelect) {
-    assetSelect.addEventListener("change", () => {
-        const itemId = assetSelect.value;
-        const item = marketList.find(i => i.id === itemId);
-
-        if (!item) {
-            qtyInfo.innerText = "الكمية المتوفرة: --";
-            qtyInput.max = 1;
-            qtyInput.value = 1;
-            return;
-        }
-
-        qtyInfo.innerText = `الكمية المتوفرة: ${item.quantity}`;
-        qtyInput.max = item.quantity;
-        qtyInput.value = 1;
-    });
+async function getUnreadCount(userId) {
+    try {
+        const unreadQuery = query(
+            collection(db, "chats", userId, "messages"),
+            where("read", "==", false),
+            where("sender", "!=", "admin")
+        );
+        const snapshot = await getDocs(unreadQuery);
+        return snapshot.size;
+    } catch (error) {
+        console.error("Error getting unread count:", error);
+        return 0;
+    }
 }
-/*************************************************
- * إصلاحات منطق الشراء وتحديث الواجهة
- *************************************************/
 
-// 1. تحديث بيانات المنتج المختار في واجهة الشراء
-const updateProductUI = () => {
-    const assetSelect = document.getElementById("assetSelect");
-    const itemId = assetSelect.value;
-    const item = marketList.find(i => i.id === itemId);
-    const card = document.getElementById("productDetailCard");
-    const qtyInput = document.getElementById("assetQty");
-
-    if (!item) {
-        card.style.display = "none";
-        return;
-    }
-
-    card.style.display = "block";
-    document.getElementById("detailPrice").innerText = formatMoney(item.price) + " ل.س";
-    document.getElementById("detailReturn").innerText = (item.returnRate || 0) + "%";
-    document.getElementById("detailStock").innerText = item.quantity || 0;
+function openChat(userId, user) {
+    if (unsubscribeMessages) unsubscribeMessages();
     
-    calculateTotal();
-};
-
-// 2. حساب المجموع الكلي ومقارنته بالرصيد
-const calculateTotal = () => {
-    const assetSelect = document.getElementById("assetSelect");
-    const item = marketList.find(i => i.id === assetSelect.value);
-    const qty = parseInt(document.getElementById("assetQty").value) || 0;
-    const totalDisplay = document.getElementById("totalPurchasePrice");
-    const warning = document.getElementById("balanceWarning");
-    const btn = document.getElementById("confirmPurchaseBtn");
-
-    if (!item) return;
-
-    const total = item.price * qty;
-    totalDisplay.innerText = formatMoney(total) + " ل.س";
-
-    // جلب رصيد المستخدم الحالي من السجل المفتوح
-    const currentBalance = cleanNumber(document.getElementById("currentBalanceSpan").innerText);
+    currentUserId = userId;
     
-    if (total > currentBalance) {
-        warning.style.display = "block";
-        btn.style.opacity = "0.5";
-        btn.disabled = true;
-    } else {
-        warning.style.display = "none";
-        btn.style.opacity = "1";
-        btn.disabled = false;
-    }
-};
-
-// 3. ربط الأحداث للواجهة الاحترافية
-document.getElementById("assetSelect")?.addEventListener("change", updateProductUI);
-document.getElementById("assetQty")?.addEventListener("input", calculateTotal);
-
-// 4. دالة الشراء المطورة (التي كانت معطلة)
-// تأكد من حذف النسخ القديمة لهذه الدالة واستخدام هذه النسخة فقط
-window.confirmAddAsset = async () => {
-    const uid = document.getElementById("assetUserId").value;
-    const itemId = document.getElementById("assetSelect").value;
-    const qtyInput = document.getElementById("assetQty");
-    const qty = parseInt(qtyInput.value);
+    chatUserInfo.style.display = 'flex';
+    noChatSelected.style.display = 'none';
+    noChatMessage.style.display = 'none';
+    messagesBox.style.display = 'block';
+    chatFooter.style.display = 'block';
     
-    // البحث عن المنتج في القائمة المحلية
-    const item = marketList.find(i => i.id === itemId);
+    chatAvatar.textContent = user.name.charAt(0);
+    chatUserName.textContent = user.name;
+    statusDot.className = `status-dot ${user.isOnline ? '' : 'offline'}`;
+    statusText.textContent = user.isOnline ? 'متصل الآن' : 'آخر ظهور: ' + formatTime(user.lastSeen?.toDate());
+    
+    loadUserInfo(userId, user);
+    loadMessages(userId);
+    markMessagesAsRead(userId);
+    updateTotalUnreadCount();
+}
 
-    // 1. التحقق المبدئي
-    if (!item || isNaN(qty) || qty <= 0) {
-        return showToast("يرجى اختيار منتج وتحديد كمية صحيحة", "error");
-    }
-
-    // ملاحظة: تأكد هل الحقل في الفايربيز اسمه quantity أم qty
-    // سأفترض أنه quantity بناءً على دالة loadMarket
-    if (item.quantity < qty) {
-        return showToast(`المخزون لا يكفي، المتوفر حالياً: ${item.quantity}`, "error");
-    }
-
-    const totalCost = item.price * qty;
-
-    // 2. نافذة التأكيد
-    const confirmed = await askConfirm(
-        "تأكيد عملية الشراء",
-        `هل أنت متأكد من شراء (${qty}) وحدة من "${item.name}"؟ \n التكلفة الإجمالية: ${formatMoney(totalCost)} ل.س`
+function loadMessages(userId) {
+    const messagesQuery = query(
+        collection(db, "chats", userId, "messages"),
+        orderBy("timestamp", "asc")
     );
     
-    if (!confirmed) return;
-
-    const btn = document.getElementById("confirmPurchaseBtn");
-    setBtnLoading(btn, true);
-
-    try {
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
+    let lastDate = '';
+    
+    unsubscribeMessages = onSnapshot(messagesQuery, (snapshot) => {
+        const messagesHTML = [];
         
-        if (!userSnap.exists()) throw new Error("المستخدم غير موجود");
-        
-        const userData = userSnap.data();
-
-        // 3. التحقق من الرصيد
-        if (userData.balance < totalCost) {
-            throw new Error("عذراً، رصيد المستثمر غير كافٍ لإتمام العملية");
-        }
-
-        const batch = writeBatch(db);
-
-        // تجهيز بيانات الأصول
-        const newAssets = [];
-        for (let i = 0; i < qty; i++) {
-            newAssets.push({
-                assetId: crypto.randomUUID(),
-                name: item.name,
-                priceAtPurchase: Number(item.price),
-                purchaseDate: new Date().toISOString(),
-                returnRate: item.returnRate || 0
-            });
-        }
-
-        // 4. تنفيذ العمليات (Batch)
-        batch.update(userRef, { 
-            balance: increment(-totalCost), 
-            assets: arrayUnion(...newAssets) 
-        });
-
-        batch.update(doc(db, "market_items", itemId), { 
-            quantity: increment(-qty) 
-        });
-
-        batch.set(doc(collection(db, "logs")), { 
-            text: `تم شراء ${qty} من (${item.name}) للمستثمر ${userData.name}`,
-            type: 'purchase',
-            timestamp: serverTimestamp() 
-        });
-
-        await batch.commit();
-
-        showToast("تمت عملية الشراء بنجاح!");
-        closeModal("assetModal");
-        
-    } catch (e) { 
-        console.error("Purchase Error:", e);
-        showToast(e.message || "حدث خطأ أثناء التنفيذ", "error"); 
-    } finally { 
-        setBtnLoading(btn, false); 
-    }
-};
-
-// إضافة وظيفة لفتح نافذة الشراء مع جلب الرصيد
-window.openAssetModal = async (id) => {
-    const userSnap = await getDoc(doc(db, "users", id));
-    if (userSnap.exists()) {
-        document.getElementById("currentBalanceSpan").innerText = formatMoney(userSnap.data().balance) + " ل.س";
-        document.getElementById("assetUserId").value = id;
-        openModal("assetModal");
-        updateProductUI(); // لتصفير البيانات السابقة
-    }
-};
-
-function loadLogs() {
-    onSnapshot(query(collection(db, "logs"), orderBy("timestamp", "desc"), limit(50)), (snap) => {
-        const fullLogContainer = document.getElementById("logsTimeline");
-        const miniLogContainer = document.getElementById("miniLogBox");
-        if (!fullLogContainer) return;
-
-        fullLogContainer.innerHTML = "";
-        if (miniLogContainer) miniLogContainer.innerHTML = "";
-
-        let lastDate = "";
-        let count = 0;
-
-        snap.forEach(docSnap => {
-            const log = docSnap.data();
-            const dateObj = log.timestamp ? log.timestamp.toDate() : new Date();
-            const dateStr = dateObj.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            const timeStr = dateObj.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-
+        snapshot.forEach((docSnapshot) => {
+            const message = docSnapshot.data();
+            const messageDate = message.timestamp?.toDate();
+            const dateStr = messageDate ? formatDate(messageDate) : '';
+            
             if (dateStr !== lastDate) {
-                fullLogContainer.innerHTML += `<div class="timeline-date">${dateStr}</div>`;
+                messagesHTML.push(`
+                    <div class="date-separator">
+                        <span>${dateStr}</span>
+                    </div>
+                `);
                 lastDate = dateStr;
             }
-
-            fullLogContainer.innerHTML += `
-                <div class="timeline-item">
-                    <div class="time">${timeStr}</div>
-                    <div class="content">${log.text}</div>
-                </div>
-            `;
-
-            if (count < 4 && miniLogContainer) {
-                miniLogContainer.innerHTML += `
-                    <div style="padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9em; display:flex; justify-content:space-between;">
-                        <span style="color:#333;">${log.text}</span>
-                        <span style="color:#999; font-size:0.8em;">${timeStr}</span>
+            
+            const isAdmin = message.sender === 'admin';
+            const messageTime = messageDate ? formatTime(messageDate) : '';
+            
+            messagesHTML.push(`
+                <div class="message-row ${isAdmin ? 'admin' : ''}">
+                    <div class="message-bubble ${isAdmin ? 'admin' : 'user'}">
+                        <div class="message-text">${message.text}</div>
+                        <div class="message-time">
+                            ${messageTime}
+                        </div>
                     </div>
-                `;
-            }
-            count++;
+                </div>
+            `);
         });
+        
+        messagesBox.innerHTML = messagesHTML.join('');
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        if (snapshot.docChanges().some(change => change.type === 'added' && change.doc.data().sender !== 'admin')) {
+            messageSound.play();
+        }
+    }, (error) => {
+        console.error("Error loading messages:", error);
     });
 }
 
-/*************************************************
- * 5. Actions (الوظائف التنفيذية)
- *************************************************/
-
-window.addProduct = async () => {
-    const name = document.getElementById("pName").value;
-    const price = cleanNumber(document.getElementById("pPrice").value);
-    const ret = document.getElementById("pReturn").value;
-    const qty = cleanNumber(document.getElementById("pQty").value);
-
-    if (!name || price <= 0) return showToast("يرجى إدخال اسم وسعر صحيح", "error");
-    const btn = document.querySelector("#market button");
-    setBtnLoading(btn, true);
-
-    try {
-        await addDoc(collection(db, "market_items"), {
-            name, price: Number(price), returnRate: Number(ret) || 0,
-            quantity: Number(qty) || 0, createdAt: serverTimestamp()
-        });
-        showToast("تمت إضافة المنتج للسوق");
-        document.getElementById("pName").value = "";
-        document.getElementById("pPrice").value = "";
-        document.getElementById("pReturn").value = "";
-        document.getElementById("pQty").value = "";
-        logAction(`إضافة منتج: ${name}`);
-    } catch (e) { showToast("خطأ في الإضافة", "error"); }
-    finally { setBtnLoading(btn, false); }
-};
-
-window.confirmAddAsset = async () => {
-    const uid = document.getElementById("assetUserId").value;
-    const itemId = document.getElementById("assetSelect").value;
-    const qtyInput = document.getElementById("assetQty");
-    const qty = Number(qtyInput.value);
+async function sendMessage() {
+    const text = messageInput.value.trim();
+    if (!text || !currentUserId) return;
     
-    // البحث عن المنتج في القائمة المحلية
-    const item = marketList.find(i => i.id === itemId);
-
-    // 1. التحقق المبدئي
-    if (!item || qty <= 0) return showToast("يرجى اختيار منتج وكمية صحيحة", "error");
-    if (item.qty < qty) return showToast(`المخزون لا يكفي، المتوفر: ${item.qty}`, "error");
-
-    const totalCost = item.price * qty;
-
-    // 2. نافذة تأكيد احترافية
-    const confirmed = await askConfirm(
-        "تأكيد عملية الشراء",
-        `هل أنت متأكد من شراء (${qty}) وحدة من "${item.name}"؟ \n التكلفة الإجمالية: ${formatMoney(totalCost)} ل.س`
-    );
-    if (!confirmed) return;
-
-    const btn = document.getElementById("confirmPurchaseBtn");
-    setBtnLoading(btn, true);
-
     try {
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
-        const userData = userSnap.data();
-
-        // 3. التحقق من رصيد المستخدم
-        if (userData.balance < totalCost) {
-            showToast("فشل العملية: رصيد المستثمر غير كافٍ", "error");
-            setBtnLoading(btn, false);
-            return;
-        }
-
-        const batch = writeBatch(db);
-
-        // تجهيز بيانات الأصول الجديدة التي ستضاف للمستثمر
-        const newAssets = Array(qty).fill().map(() => ({
-            id: crypto.randomUUID(),
-            name: item.name,
-            priceAtPurchase: Number(item.price),
-            expectedReturn: item.return || 0, // أضفنا العائد هنا أيضاً
-            boughtAt: new Date().toISOString()
-        }));
-
-        // 4. تنفيذ العمليات (Batch) لضمان الدقة
-        // خصم الرصيد وإضافة الأصول للمستخدم
-        batch.update(userRef, { 
-            balance: increment(-totalCost), 
-            assets: arrayUnion(...newAssets) 
-        });
-
-        // خصم الكمية من المخزن (السوق)
-        batch.update(doc(db, "market_items", itemId), { 
-            qty: increment(-qty) // تأكد أن الحقل في قاعدة البيانات اسمه qty
-        });
-
-        // تسجيل العملية في السجل
-        batch.set(doc(collection(db, "logs")), { 
-            text: `تم شراء ${qty} من (${item.name}) للمستثمر ${userData.name} بمبلغ ${formatMoney(totalCost)}`,
-            type: 'purchase',
-            timestamp: serverTimestamp() 
-        });
-
-        await batch.commit();
-
-        showToast("تمت عملية الشراء بنجاح وتحديث محفظة المستثمر");
-        closeModal("assetModal");
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         
-        // إعادة تصفير الحقول
-        qtyInput.value = 1;
-        if(typeof loadInvestors === 'function') loadInvestors(); // تحديث القائمة فوراً
-
-    } catch (e) { 
-        console.error(e);
-        showToast("حدث خطأ تقني أثناء تنفيذ العملية", "error"); 
-    } finally { 
-        setBtnLoading(btn, false); 
+        await addDoc(collection(db, "chats", currentUserId, "messages"), {
+            text: text,
+            sender: 'admin',
+            timestamp: serverTimestamp(),
+            read: false
+        });
+        
+        await updateDoc(doc(db, "users", currentUserId), {
+            lastMessage: text.substring(0, 50),
+            lastMessageTime: serverTimestamp()
+        });
+        
+        messageInput.value = '';
+        autoResizeTextarea();
+        showNotification("تم الإرسال", "تم إرسال الرسالة بنجاح", "success");
+    } catch (error) {
+        console.error("Error sending message:", error);
+        showNotification("خطأ في الإرسال", "حدث خطأ أثناء إرسال الرسالة", "error");
+    } finally {
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
     }
-};
-window.executeDistribution = async () => {
-    const profitInput = document.getElementById("profitInput");
-    const totalProfit = cleanNumber(profitInput.value);
-    if (totalProfit <= 0 || globalTotalShares <= 0) return showToast("بيانات التوزيع غير صحيحة", "error");
+}
 
-    const perShare = totalProfit / globalTotalShares;
-    const confirmed = await askConfirm("توزيع الأرباح", `توزيع ${formatMoney(totalProfit)} ل.س؟`);
-    if (!confirmed) return;
-
-    const btn = document.getElementById("distributeBtn");
-    setBtnLoading(btn, true);
-
+async function loadUserInfo(userId, user) {
     try {
-        const usersSnap = await getDocs(collection(db, "users"));
-        const batch = writeBatch(db);
-        usersSnap.forEach(docSnap => {
-            const u = docSnap.data();
-            const invested = (u.assets || []).reduce((sum, a) => sum + (Number(a.priceAtPurchase)||0), 0);
-            const shares = currentSharePrice > 0 ? (invested / currentSharePrice) : 0;
-            if (shares > 0) {
-                batch.update(doc(db, "users", docSnap.id), { balance: increment(shares * perShare) });
+        userInfoAvatar.textContent = user.name.charAt(0);
+        userInfoName.textContent = user.name;
+        userInfoEmail.textContent = user.email || 'لا يوجد بريد إلكتروني';
+        userBalance.textContent = `${user.balance || 0} ل.س`;
+        
+        const userDoc = await getDoc(doc(db, "users", userId));
+        if (userDoc.exists()) {
+            const userData = userDoc.data();
+            
+            totalInvestments.textContent = `${userData.totalInvestments || 0} ل.س`;
+            totalProfit.textContent = `${userData.totalProfit || 0} ل.س`;
+            joinDate.textContent = userData.createdAt ? formatDate(userData.createdAt.toDate()) : 'غير معروف';
+            accountStatus.textContent = userData.isActive ? 'نشط' : 'محظور';
+            accountStatus.style.color = userData.isActive ? 'var(--primary)' : 'var(--danger)';
+            
+            const unread = await getUnreadCount(userId);
+            userUnread.textContent = unread;
+        }
+        
+        userInfo.style.display = 'block';
+        noUserInfo.style.display = 'none';
+    } catch (error) {
+        console.error("Error loading user info:", error);
+    }
+}
+
+async function markMessagesAsRead(userId) {
+    try {
+        const unreadQuery = query(
+            collection(db, "chats", userId, "messages"),
+            where("read", "==", false),
+            where("sender", "!=", "admin")
+        );
+        
+        const snapshot = await getDocs(unreadQuery);
+        const updates = snapshot.docs.map(doc => 
+            updateDoc(doc.ref, { read: true, readAt: serverTimestamp() })
+        );
+        
+        if (updates.length > 0) {
+            await Promise.all(updates);
+            updateTotalUnreadCount();
+        }
+    } catch (error) {
+        console.error("Error marking messages as read:", error);
+    }
+}
+
+async function updateTotalUnreadCount() {
+    try {
+        let totalUnread = 0;
+        
+        for (const user of usersList) {
+            const unread = await getUnreadCount(user.id);
+            totalUnread += unread;
+        }
+        
+        unreadCountElement.textContent = totalUnread > 0 ? totalUnread : '';
+        unreadCountElement.style.display = totalUnread > 0 ? 'inline-block' : 'none';
+    } catch (error) {
+        console.error("Error updating unread count:", error);
+    }
+}
+
+function checkUnreadMessages() {
+    setInterval(updateTotalUnreadCount, 30000);
+}
+
+function setupEventListeners() {
+    sendBtn.addEventListener('click', sendMessage);
+    
+    messageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+    
+    messageInput.addEventListener('input', autoResizeTextarea);
+    messageInput.addEventListener('input', () => {
+        sendBtn.disabled = messageInput.value.trim() === '';
+    });
+    
+    userSearch.addEventListener('input', searchUsers);
+    
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        signOut(auth).then(() => {
+            window.location.href = "admin-login.html";
+        });
+    });
+    
+    if (window.innerWidth <= 768) {
+        mobileMenuBtn.style.display = 'block';
+        mobileMenuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+        });
+        
+        document.addEventListener('click', (e) => {
+            if (!sidebar.contains(e.target) && e.target !== mobileMenuBtn) {
+                sidebar.classList.remove('active');
             }
         });
-        batch.set(doc(collection(db, "logs")), { text: `توزيع أرباح بقيمة ${totalProfit}`, timestamp: serverTimestamp() });
-        await batch.commit();
-        showToast("تم التوزيع بنجاح");
-        profitInput.value = "";
-    } catch (e) { showToast("فشل التوزيع", "error"); }
-    finally { setBtnLoading(btn, false); }
-};
-
-window.confirmAddUser = async () => {
-    const name = document.getElementById("newUserName").value;
-    const phone = document.getElementById("newUserPhone").value;
-    const balance = cleanNumber(document.getElementById("newUserBalance").value);
-    if (!name) return showToast("الاسم مطلوب", "error");
-
-    const btn = document.querySelector("#userModal .btn-primary");
-    setBtnLoading(btn, true);
-    try {
-        await addDoc(collection(db, "users"), { name, phone, balance, assets: [], createdAt: serverTimestamp() });
-        showToast("تمت إضافة المستثمر");
-        closeModal("userModal");
-        logAction(`إضافة مستثمر: ${name}`);
-    } catch (e) { showToast("خطأ", "error"); }
-    finally { setBtnLoading(btn, false); }
-};
-
-
-window.confirmEditBalance = async () => {
-    const uid = document.getElementById("editUserId").value;
-    const rawVal = document.getElementById("balanceAmount").value.replace(/,/g, '');
-    const finalAmount = Number(rawVal);
-    if (finalAmount === 0) return showToast("أدخل المبلغ", "error");
-
-    const confirmed = await askConfirm("تعديل الرصيد", `تعديل الرصيد بقيمة ${formatMoney(finalAmount)}؟`);
-    if (!confirmed) return;
-
-    try {
-        await updateDoc(doc(db, "users", uid), { balance: increment(finalAmount) });
-        showToast("تم تحديث المحفظة");
-        closeModal("balanceModal");
-        logAction(`تعديل رصيد مستخدم بقيمة ${finalAmount}`);
-    } catch (e) { showToast("خطأ", "error"); }
-};
-
-window.deleteUser = async (id) => {
-    if (await askConfirm("حذف مستثمر", "هل أنت متأكد؟")) {
-        await deleteDoc(doc(db, "users", id));
-        showToast("تم الحذف");
     }
-};
-
-window.deleteProduct = async (id) => {
-    if (await askConfirm("حذف منتج", "هل أنت متأكد؟")) {
-        await deleteDoc(doc(db, "market_items", id));
-        showToast("تم الحذف");
-    }
-};
-
-
-window.saveSharePrice = async () => {
-    const val = cleanNumber(document.getElementById("manualSharePriceInput").value);
-    if (val <= 0) return showToast("أدخل سعراً صحيحاً", "error");
-    if (await askConfirm("تحديث السهم", `تغيير السعر لـ ${formatMoney(val)}؟`)) {
-        await setDoc(doc(db, "global_settings", "market_prices"), { cow: val, updatedAt: serverTimestamp() });
-        showToast("تم التحديث");
-        closeModal("sharePriceModal");
-    }
-};
-
-window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
-
-async function logAction(text) {
-    try { await addDoc(collection(db, "logs"), { text, timestamp: serverTimestamp() }); } catch(e){}
+    
+    window.addEventListener('resize', () => {
+        if (window.innerWidth <= 768) {
+            mobileMenuBtn.style.display = 'block';
+        } else {
+            mobileMenuBtn.style.display = 'none';
+            sidebar.classList.remove('active');
+        }
+    });
 }
-function updateText(id, val) { const el = document.getElementById(id); if(el) el.innerText = val; }
-window.openModal = (id) => document.getElementById(id).classList.add("show");
-window.closeModal = (id) => document.getElementById(id).classList.remove("show");
-window.openTab = (id, btn) => {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    document.getElementById(id).classList.add("active");
-    document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
-    if (btn) btn.classList.add("active");
+
+function autoResizeTextarea() {
+    const textarea = messageInput;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+}
+
+function searchUsers() {
+    const searchTerm = userSearch.value.toLowerCase();
+    const userItems = document.querySelectorAll('.user-item');
+    
+    userItems.forEach(item => {
+        const userName = item.querySelector('h4').textContent.toLowerCase();
+        if (userName.includes(searchTerm)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+window.togglePanel = (panelId) => {
+    const panel = document.getElementById(panelId);
+    panel.classList.toggle('collapsed');
 };
 
+function showNotification(title, message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification`;
+    notification.innerHTML = `
+        <strong>${title}</strong><br>
+        <small>${message}</small>
+    `;
+    
+    notificationContainer.appendChild(notification);
+    
+    if (type === 'success') {
+        notification.style.background = 'var(--primary)';
+    } else if (type === 'error') {
+        notification.style.background = 'var(--danger)';
+    }
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
 
+function formatDate(date) {
+    if (!date) return '';
+    return date.toLocaleDateString('ar-EG', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
 
-window.openAssetModal = (id) => { document.getElementById("assetUserId").value = id; openModal("assetModal"); };
-window.openBalanceModal = (id) => { document.getElementById("editUserId").value = id; openModal("balanceModal"); };
+function formatTime(date) {
+    if (!date) return '';
+    return date.toLocaleTimeString('ar-EG', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+window.viewUserProfile = () => {
+    if (currentUserId) {
+        showNotification("معلومات", "سيتم فتح صفحة المستخدم قريباً", "info");
+    }
+};
+
+window.blockUser = async () => {
+    if (!currentUserId) return;
+    
+    if (confirm("هل أنت متأكد من حظر هذا المستخدم؟")) {
+        try {
+            await updateDoc(doc(db, "users", currentUserId), {
+                isActive: false,
+                blockedAt: serverTimestamp()
+            });
+            showNotification("تم الحظر", "تم حظر المستخدم بنجاح", "success");
+            loadUserInfo(currentUserId, usersList.find(u => u.id === currentUserId));
+        } catch (error) {
+            showNotification("خطأ", "حدث خطأ أثناء حظر المستخدم", "error");
+        }
+    }
+};
+
+initApp();
+</script>
+</body>
+</html>
