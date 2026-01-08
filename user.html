@@ -1,760 +1,1458 @@
-/*************************************************
-* 1. Firebase Imports & Config
- *************************************************/
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import {
-    getFirestore, collection, addDoc, getDocs, deleteDoc,
-    updateDoc, doc, increment, arrayUnion, setDoc, getDoc,
-    serverTimestamp, onSnapshot, query, orderBy, limit, writeBatch
-} from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyCI_0-7KsqnssqkOSkNVK0FmuRokDNXriE",
-    authDomain: "tajer-app-e1b97.firebaseapp.com",
-    projectId: "tajer-app-e1b97",
-    storageBucket: "tajer-app-e1b97.firebasestorage.app",
-    messagingSenderId: "92669858022",
-    appId: "1:92669858022:web:a1223e9121190815066b27"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-
-/*************************************************
- * 2. Helpers & Formatters (أدوات التنسيق)
- *************************************************/
-
-const formatMoney = (num) => {
-    if (!num && num !== 0) return "0";
-    return Number(num).toLocaleString('en-US');
-};
-
-const cleanNumber = (str) => {
-    if (!str) return 0;
-    // تم تعديلها لتسمح بالإشارة السالبة (-) من أجل عمليات خصم الرصيد
-    return Number(String(str).replace(/[^0-9.-]/g, ''));
-};
-
-const attachMoneyInputListener = (inputId) => {
-    const el = document.getElementById(inputId);
-    if (!el) return;
-    el.addEventListener('input', function (e) {
-        let rawValue = this.value.replace(/[^0-9-]/g, '');
-        if (!rawValue) { this.value = ""; return; }
-        this.value = Number(rawValue).toLocaleString('en-US');
-    });
-};
-
-/*************************************************
- * 3. UI System (التنبيهات والنوافذ)
- *************************************************/
-
-function showToast(message, type = 'success') {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-    const box = document.createElement('div');
-    box.className = `toast-msg ${type}`;
-    box.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${message}`;
-    container.appendChild(box);
-    setTimeout(() => { box.style.opacity = '1'; box.style.transform = 'translateY(0)'; }, 10);
-    setTimeout(() => { box.style.opacity = '0'; setTimeout(() => box.remove(), 300); }, 3000);
-}
-
-// دالة التأكيد المخصصة الأصلية (مع إصلاح لضمان عمل Promise)
-function askConfirm(title, message) {
-    return new Promise((resolve) => {
-        const modal = document.getElementById('confirmModal');
-        document.getElementById('confirmTitle').innerText = title;
-        document.getElementById('confirmMessage').innerText = message;
-        modal.classList.add('show');
-
-        const yesBtn = document.getElementById('confirmYesBtn');
-        const noBtn = document.getElementById('confirmNoBtn');
-
-        const newYes = yesBtn.cloneNode(true);
-        const newNo = noBtn.cloneNode(true);
-
-        yesBtn.parentNode.replaceChild(newYes, yesBtn);
-        noBtn.parentNode.replaceChild(newNo, noBtn);
-
-        newYes.onclick = () => {
-            modal.classList.remove('show');
-            resolve(true);
-        };
-
-        newNo.onclick = () => {
-            modal.classList.remove('show');
-            resolve(false);
-        };
-    });
-}
-
-
-function setBtnLoading(btn, isLoading) {
-    if (!btn) return;
-    if (isLoading) {
-        btn.dataset.text = btn.innerText;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المعالجة...';
-        btn.disabled = true;
-    } else {
-        btn.innerText = btn.dataset.text || 'تأكيد';
-        btn.disabled = false;
-    }
-}
-
-/*************************************************
- * 4. Core Logic & Data
- *************************************************/
-let globalTotalShares = 0;
-let marketList = [];
-let currentSharePrice = 0;
-
-onAuthStateChanged(auth, (user) => {
-    if (!user || user.email !== "admin33@tajer44.com") {
-        window.location.href = "index.html";
-    } else {
-        initApp();
-        setupInputs();
-    }
-});
-
-
-
-
-function setupInputs() {
-    ['profitInput', 'manualSharePriceInput', 'newUserBalance', 'balanceAmount', 'pPrice', 'pQty'].forEach(id => attachMoneyInputListener(id));
-
-    const pInput = document.getElementById("profitInput");
-    if (pInput) {
-        pInput.addEventListener("input", () => {
-            const val = cleanNumber(pInput.value);
-            const hint = document.getElementById("profitPerShareHint");
-            if (val > 0 && globalTotalShares > 0) {
-                const share = val / globalTotalShares;
-                hint.innerHTML = `نصيب السهم الواحد: <strong>${share.toFixed(2)}</strong> ل.س`;
-                hint.style.display = "block";
-            } else {
-                hint.style.display = "none";
-            }
-        });
-    }
-}
-
-function initApp() {
-    onSnapshot(doc(db, "global_settings", "market_prices"), (snap) => {
-        if (snap.exists()) {
-            currentSharePrice = Number(snap.data().cow) || 0;
-            document.getElementById("d-share-value").innerText = formatMoney(currentSharePrice);
-            loadInvestors();
-        }
-    });
-
-    loadInvestors();
-    loadMarket();
-    loadLogs();
-    loadWithdrawals(); // تم تفعيلها هنا لتعمل عند تشغيل التطبيق
-}
-
-function loadInvestors() {
-    // نستخدم onSnapshot لمراقبة التغييرات فورياً
-    // نستخدم orderBy لترتيب المستثمرين حسب تاريخ الانضمام (كما في الكود البسيط)
-    const q = query(collection(db, "users"), orderBy("joinDate", "desc"));
-
-    onSnapshot(q, (snap) => {
-        const table = document.querySelector("#usersTable tbody");
-        if (!table) return;
-
-        table.innerHTML = ""; // تفريغ الجدول لبدء الرسم من جديد
-
-        let totalShares = 0;
-        let totalCapital = 0;
-        let investorsCount = 0;
-        let idx = 1;
-
-        snap.forEach(docSnap => {
-            investorsCount++;
-            const u = docSnap.data();
-
-            // 1. جلب البيانات بالمسميات البسيطة (اسم، بريد، هاتف، تاريخ)
-            const name = u.name || "مستخدم جديد";
-            const phone = u.phone || "---";
-            const email = u.email || "لم يتم إضافة بريد";
-            
-            // معالجة تاريخ الانضمام (من الكود البسيط)
-            let dateStr = "غير مسجل";
-            if (u.joinDate) {
-                // إذا كان التاريخ مخزن كـ Timestamp في فايربيس
-                dateStr = new Date(u.joinDate.toDate()).toLocaleDateString('ar-SA');
-            }
-
-            // 2. حسابات الاستثمار (الوظائف المتقدمة)
-            const assets = u.assets || [];
-            const invested = assets.reduce((sum, item) => sum + (Number(item.priceAtPurchase) || 0), 0);
-            
-            // حساب الأسهم بناءً على سعر السهم الحالي (currentSharePrice)
-            const price = (typeof currentSharePrice !== 'undefined' && currentSharePrice > 0) ? currentSharePrice : 1;
-            const myShares = invested / price;
-
-            totalShares += myShares;
-            totalCapital += invested;
-
-            // 3. تجميع الممتلكات لنص واحد (مثال: بقرة (2))
-            const assetMap = {};
-            assets.forEach(a => assetMap[a.name] = (assetMap[a.name] || 0) + 1);
-            const assetStr = Object.entries(assetMap).map(([k, v]) => `${k} (${v})`).join("، ") || "-";
-
-            // 4. عرض البيانات في الجدول (مطابق تماماً لـ HTML الخاص بك)
-            table.innerHTML += `
-                <tr>
-                    <td>${idx++}</td> <td>
-                        <strong>${name}</strong><br>
-                        <span style="font-size:0.8em; color:#666;">${phone}</span><br>
-                        <span style="font-size:0.75em; color:#999;">${email}</span><br>
-                        <small style="color:#aaa;">انضم في: ${dateStr}</small>
-                    </td> <td style="color:#2563eb; font-weight:bold;">${formatMoney(u.balance || 0)}</td> <td style="font-size:0.85em;">${assetStr}</td> <td>${formatMoney(invested)}</td> <td style="color:#16a34a; font-weight:bold;">${myShares.toFixed(2)}</td> <td>
-                        <button class="btn-icon purple" onclick="openAssetModal('${docSnap.id}')" title="شراء"><i class="fas fa-shopping-cart"></i></button>
-                        <button class="btn-icon orange" onclick="openBalanceModal('${docSnap.id}')" title="الرصيد"><i class="fas fa-coins"></i></button>
-                        <button class="btn-icon red" onclick="deleteUser('${docSnap.id}')" title="حذف"><i class="fas fa-trash"></i></button>
-                    </td> </tr>
-            `;
-        });
-
-        // تحديث أرقام الإحصائيات في أعلى الصفحة
-        updateText("d-users", investorsCount);
-        updateText("d-capital", formatMoney(totalCapital));
-        updateText("d-total-shares", totalShares.toFixed(2));
-    });
-}
-// دالة جلب طلبات السحب مع تحديث مباشر
-async function loadWithdrawals() {
-    const container = document.getElementById('withdrawalsContainer');
-    if(!container) return;
-
-    onSnapshot(collection(db, "withdrawals"), (snap) => {
-        container.innerHTML = '';
-        if(snap.empty) {
-            container.innerHTML = '<p style="text-align:center; grid-column: 1/-1;">لا توجد طلبات معلقة</p>';
-            return;
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تـاجر الزراعي | منصة الاستثمار</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #10b981; --primary-dark: #059669;
+            --secondary: #3b82f6; --accent: #f59e0b;
+            --bg-body: #f1f5f9; --white: #ffffff;
+            --text-main: #1e293b; --glass: rgba(255, 255, 255, 0.95);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --danger: #ef4444; --success: #10b981;
         }
 
-        snap.forEach(docRef => {
-            const data = docRef.data();
-            container.innerHTML += `
-                <div class="withdraw-card">
-                    <h4>${data.userName}</h4>
-                    <div class="price">${Number(data.amount).toLocaleString()} ل.س</div>
-                    <div class="date">${data.date || ''}</div>
-                    <div class="actions">
-                        <button class="btn-approve" onclick="confirmAction('قبول السحب', 'هل أنت متأكد من تحويل المبلغ؟', () => processWithdraw('${docRef.id}', true))" style="background:#dcfce7; color:#166534; padding:8px; border-radius:5px; border:none; cursor:pointer;">موافقة</button>
-                        <button class="btn-reject" onclick="confirmAction('رفض الطلب', 'هل تريد رفض هذا الطلب؟', () => processWithdraw('${docRef.id}', false))" style="background:#fee2e2; color:#991b1b; padding:8px; border-radius:5px; border:none; cursor:pointer;">رفض</button>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Tajawal', sans-serif; }
+        body { background-color: var(--bg-body); color: var(--text-main); padding-bottom: 90px; direction: rtl; overflow-x: hidden; }
+
+        /* --- نظام تسجيل الدخول والتسجيل الجديد --- */
+        #auth-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #064e3b, #0f172a);
+            z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;
+            transition: opacity 0.3s;
+        }
+        
+        .market-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            padding: 10px 0;
+        }
+        
+
+        /* تنسيق زر الاستثمار داخل البطاقة */
+        .btn-invest-mini {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+
+     
+        .market-image-container {
+            width: 100%;
+            height: 180px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .market-image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        @media (min-width: 768px) {
+            #marketItems {
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); /* للكمبيوتر: 3 أو 4 بطاقات */
+            }
+        }
+
+        
+        .market-content {
+            padding: 15px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .market-title {
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        .market-info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .market-price {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .btn-invest {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-invest:hover {
+            background: var(--primary-dark);
+        }        
+        .auth-box {
+            background: rgba(255,255,255,0.1); backdrop-filter: blur(15px);
+            padding: 30px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.2);
+            width: 100%; max-width: 400px; color: white; text-align: center;
+            animation: slideUp 0.5s ease;
+        }
+        .auth-input {
+            width: 100%; padding: 12px; margin: 8px 0; border-radius: 12px;
+            border: none; outline: none; font-size: 1rem; text-align: center;
+            background: rgba(255,255,255,0.9); transition: all 0.3s;
+        }
+        .auth-input:focus { background: white; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3); }
+        .btn-auth {
+            background: var(--primary); color: white; border: none; padding: 14px;
+            width: 100%; border-radius: 12px; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 15px;
+            transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-auth:hover { background: var(--primary-dark); transform: translateY(-2px); }
+        .switch-auth { margin-top: 20px; font-size: 0.9rem; cursor: pointer; text-decoration: underline; opacity: 0.8; }
+        .switch-auth:hover { opacity: 1; }
+
+        /* --- تنسيقات الواجهة الرئيسية --- */
+        .top-bar {
+            background: var(--primary); /* أو اللون الذي تفضله */
+            color: white;
+            padding: 15px 20px;
+            position: fixed; /* تغيير جوهري: تثبيت الهيدر في قمة الشاشة دائماً */
+            top: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            z-index: 1000; /* لضمان ظهوره فوق كل العناصر */
+            height: 90px; /* تحديد ارتفاع ثابت يمنع التذبذب */
+            display: block;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        /* هذا السطر هو الأهم: يضيف مسافة فارغة تحت الهيدر الثابت لكي لا يغطي محتوى الصفحة */
+        body {
+            padding-top: 100px !important; 
+        }
+        .balance-float {
+            background: var(--white); width: 90%; margin: -30px auto 20px;
+            padding: 20px; border-radius: 20px; box-shadow: var(--shadow-lg);
+            display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 101;
+            animation: slideUp 0.5s ease;
+        }
+        .page { display: none; padding: 20px; animation: fadeIn 0.4s; min-height: calc(100vh - 200px); }
+        .page.active { display: block; }
+        
+        /* --- الكروت والإحصائيات --- */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0;
+        }
+        .stat-card {
+            background: white; padding: 20px; border-radius: 15px; box-shadow: var(--shadow);
+            text-align: center; transition: transform 0.3s;
+        }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-card i { font-size: 1.8rem; margin-bottom: 10px; }
+        .stat-card .value { font-size: 1.5rem; font-weight: 800; margin: 5px 0; }
+        .stat-card .label { font-size: 0.8rem; color: #64748b; }
+        
+        /* --- عناصر السوق --- */
+      
+
+         /* ابحث عن #marketList وقم بتعديله لهذا الشكل المطور */
+        #marketList {
+            display: grid;
+            /* الجوال: بطاقتين بعرض 160px | الكمبيوتر: يتوزع تلقائياً */
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
+            gap: 12px;
+            padding: 10px;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            #marketList {
+                /* الشاشات الكبيرة: 4 بطاقات أو أكثر */
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 20px;
+            }
+        }
+
+        /* تأكد أن الـ market-item يملك هذا التنسيق لضمان تساوي الطول */
+        .market-item {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 15px;
+            border: 1px solid #eef2f6;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* هذا يضع الزر دائماً في الأسفل */
+            height: 100%; 
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow);
+        }
+
+        .market-item:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+
+        /* زر الاستثمار داخل البطاقة */
+        .btn-invest-mini {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+            width: 100%;
+        }
+
+        .btn-invest-mini:hover {
+            background: var(--primary-dark);
+        }
+        /* تأثير الطيران عند اللمس */
+        .market-item:hover {
+            transform: translateY(-12px) rotateX(6deg) !important;
+            box-shadow: 0 20px 30px rgba(16, 185, 129, 0.2) !important;
+            border-color: var(--primary) !important;
+        }
+
+        /* شبكة البيانات المصغرة داخل البطاقة */
+        .item-data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            background: #f8fafc;
+            padding: 8px;
+            border-radius: 12px;
+            margin: 10px 0;
+        }        
+        .item-footer { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;
+        }
+        
+        /* --- زر رئيسي --- */
+        .btn-primary {
+            background: var(--primary); color: white; border: none; padding: 12px 24px;
+            border-radius: 12px; font-weight: bold; cursor: pointer; transition: all 0.3s;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-secondary {
+            background: var(--secondary); color: white; border: none; padding: 12px 24px;
+            border-radius: 12px; font-weight: bold; cursor: pointer; transition: all 0.3s;
+        }
+        .btn-secondary:hover { background: #2563eb; }
+        
+        /* --- التنقل السفلي --- */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; width: 100%; background: var(--glass);
+            backdrop-filter: blur(10px); padding: 15px; display: flex; justify-content: space-around;
+            border-radius: 25px 25px 0 0; box-shadow: 0 -5px 20px rgba(0,0,0,0.1); z-index: 1000;
+        }
+        .nav-item { 
+            text-align: center; color: #94a3b8; cursor: pointer; transition: all 0.3s;
+            flex: 1; padding: 5px;
+        }
+        .nav-item i { font-size: 1.2rem; margin-bottom: 5px; }
+        .nav-item span { font-size: 0.8rem; }
+        .nav-item.active { color: var(--primary); transform: translateY(-5px); }
+        .nav-item:hover:not(.active) { color: #64748b; }
+        
+        /* --- الرسائل والإشعارات --- */
+        #toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: #1e293b; color: white; padding: 12px 25px; border-radius: 50px;
+            z-index: 11000; display: none; animation: slideDown 0.3s ease;
+            box-shadow: var(--shadow-lg); min-width: 300px; text-align: center;
+        }
+        .loading {
+            display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%; border-top-color: white; animation: spin 1s ease-in-out infinite;
+        }
+        
+        /* --- المحفظة والتقارير --- */
+        .wallet-card {
+            background: white; border-radius: 20px; padding: 25px; margin: 20px 0;
+            box-shadow: var(--shadow); border: 2px solid #e2e8f0;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; }
+        .form-control {
+            width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 12px;
+            font-size: 1rem; transition: all 0.3s;
+        }
+        .form-control:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
+        
+        /* --- محفظة المستثمرين --- */
+        .investors-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;
+            margin-top: 20px;
+        }
+        .investor-card {
+            background: white; border-radius: 15px; padding: 20px; box-shadow: var(--shadow);
+            text-align: center; transition: all 0.3s;
+        }
+        .investor-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
+        .investor-avatar {
+            width: 60px; height: 60px; border-radius: 50%; background: var(--primary);
+            color: white; display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; margin: 0 auto 15px;
+        }
+        
+        /* --- الرسوم المتحركة --- */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* --- القوائم --- */
+        .list-group { background: white; border-radius: 15px; overflow: hidden; box-shadow: var(--shadow); }
+        .list-item { 
+            padding: 15px 20px; border-bottom: 1px solid #e2e8f0; 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .list-item:last-child { border-bottom: none; }
+        
+        /* --- الوسائط المتعددة --- */
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .balance-float { width: 95%; padding: 15px; }
+            .investors-grid { grid-template-columns: 1fr; }
+            .bottom-nav { padding: 10px; }
+            .nav-item span { font-size: 0.7rem; }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .auth-box { padding: 20px; }
+            .top-bar { padding: 15px 20px 30px; }
+        }
+        
+        /* --- تحسينات عامة --- */
+        .progress-bar {
+            height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%; background: var(--primary); border-radius: 4px; transition: width 0.3s;
+        }
+        .badge {
+            display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 0.7rem;
+            font-weight: 600; margin-right: 5px;
+        }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        
+        /* --- الشريط الجانبي للملف الشخصي --- */
+        .profile-sidebar {
+            background: white; border-radius: 20px; padding: 25px; box-shadow: var(--shadow);
+            text-align: center; margin-bottom: 20px;
+        }
+        .profile-avatar {
+            width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white; display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem; margin: 0 auto 20px; border: 5px solid white; box-shadow: var(--shadow);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast"></div>
+
+    <div id="auth-overlay">
+        <div class="auth-box" id="login-section">
+            <i class="fas fa-user-circle" style="font-size: 3.5rem; color: var(--primary); margin-bottom: 15px;"></i>
+            <h2>تسجيل الدخول</h2>
+            <p style="margin-bottom: 20px; opacity: 0.8;">أدخل رقم جوالك للمتابعة</p>
+            <input type="tel" id="loginPhone" class="auth-input" placeholder="رقم الجوال (مثال: 0912345678)" pattern="[0-9]{10}">
+            <button class="btn-auth" onclick="handleAuth('login')" id="loginBtn">
+                <span id="loginText">دخول</span>
+                <i class="fas fa-sign-in-alt"></i>
+            </button>
+            <div class="switch-auth" onclick="toggleAuth(false)">ليس لديك حساب؟ سجل الآن</div>
+            <div style="margin-top: 20px; color: rgba(255,255,255,0.6); font-size: 0.8rem;">
+                <i class="fas fa-shield-alt"></i> بياناتك محمية ومشفرة
+            </div>
+        </div>
+
+        <div class="auth-box" id="register-section" style="display: none;">
+            <i class="fas fa-user-plus" style="font-size: 3.5rem; color: var(--secondary); margin-bottom: 15px;"></i>
+            <h2>مستثمر جديد</h2>
+            <p style="margin-bottom: 20px; opacity: 0.8;">انضم إلى عائلة تاجر الزراعي</p>
+            <input type="text" id="regName" class="auth-input" placeholder="الاسم الكامل" required>
+            <input type="email" id="regEmail" class="auth-input" placeholder="البريد الإلكتروني (اختياري)">
+            <input type="tel" id="regPhone" class="auth-input" placeholder="رقم الجوال" pattern="[0-9]{10}" required>
+            <div style="text-align: right; margin: 10px 0; font-size: 0.8rem;">
+                <label>
+                    <input type="checkbox" id="terms" checked>
+                    أوافق على <a href="#" style="color: var(--primary);">الشروط والأحكام</a>
+                </label>
+            </div>
+            <button class="btn-auth" style="background: var(--secondary);" onclick="handleAuth('register')" id="registerBtn">
+                <span id="registerText">إنشاء حساب جديد</span>
+                <i class="fas fa-user-plus"></i>
+            </button>
+            <div class="switch-auth" onclick="toggleAuth(true)">لديك حساب بالفعل؟ سجل دخول</div>
+        </div>
+    </div>
+
+    <div id="main-content" style="display: none;">
+        <header class="top-bar">
+            <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="font-size: 0.9rem; opacity: 0.9; font-weight: 400;">مرحباً بك،</h3>
+                    <h1 id="userNameDisplay" style="font-size: 1.4rem; font-weight: 700;">...</h1>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+                        <span style="font-size: 0.8rem; background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 20px;">
+                            <i class="fas fa-id-card"></i> <span id="userPhoneDisplay">...</span>
+                        </span>
+                        <span id="userLevel" style="font-size: 0.7rem; background: var(--accent); padding: 2px 8px; border-radius: 20px;">
+                            <i class="fas fa-crown"></i> مبتدئ
+                        </span>
                     </div>
                 </div>
-            `;
-        });
-    });
-}
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div id="notificationBell" style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 12px; position: relative; cursor: pointer;" onclick="showNotifications()">
+                        <i class="fas fa-bell"></i>
+                        <span id="notificationCount" style="position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; font-size: 0.7rem; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; display: none;">0</span>
+                    </div>
+                    <div id="logoutBtn" style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 12px; cursor: pointer;" onclick="showLogoutConfirm()">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
 
-// دالة معالجة السحب (قبول أو رفض) - تمت إضافتها لتكتمل الوظيفة
-window.processWithdraw = async (reqId, isApproved) => {
-    try {
-        const docRef = doc(db, "withdrawals", reqId);
-        const snap = await getDoc(docRef);
-        if(!snap.exists()) return;
-        const reqData = snap.data();
+        <div class="balance-float">
+            <div>
+                <div style="font-size: 0.8rem; color: #64748b; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-wallet"></i> رصيد المحفظة
+                </div>
+                <div style="font-size: 1.5rem; font-weight: 800; display: flex; align-items: baseline; gap: 5px;">
+                    <span id="userBalanceDisplay">0</span> 
+                    <small style="font-size: 0.9rem; color: #64748b;">ليرة سورية</small>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--success); margin-top: 5px;">
+                    <i class="fas fa-arrow-up"></i> <span id="profitAmount">0</span> أرباح هذا الشهر
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="openTab('wallet')" style="background: #ecfdf5; border:none; padding:10px 15px; border-radius:10px; color: var(--primary); font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='#ecfdf5'">
+                    <i class="fas fa-plus"></i> شحن
+                </button>
+                <button onclick="openTab('wallet')" style="background: #eff6ff; border:none; padding:10px 15px; border-radius:10px; color: var(--secondary); font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+                    <i class="fas fa-download"></i> سحب
+                </button>
+            </div>
+        </div>
 
-        if (isApproved) {
-            // خصم من رصيد المستخدم
-            const userRef = doc(db, "users", reqData.userId);
-            await updateDoc(userRef, { balance: increment(-reqData.amount) });
-            logAction(`موافقة سحب مبلغ ${reqData.amount} للمستخدم ${reqData.userName}`);
-            showToast("تمت الموافقة وخصم الرصيد");
-        } else {
-            logAction(`رفض طلب سحب للمستخدم ${reqData.userName}`);
-            showToast("تم رفض الطلب", "error");
-        }
-        // حذف الطلب بعد المعالجة
-        await deleteDoc(docRef);
-    } catch (e) {
-        showToast("حدث خطأ في المعالجة", "error");
-    }
-};
+        <main>
+            <!-- الصفحة الرئيسية -->
+            <section id="home" class="page active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <i class="fas fa-chart-pie" style="color:var(--primary);"></i>
+                        <div class="value" id="userSharesCount">0</div>
+                        <div class="label">عدد المشاريع</div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-wallet" style="color:var(--secondary);"></i>
+                        <div class="value" id="userAssetsValue">0</div>
+                        <div class="label">إجمالي الاستثمار</div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-coins" style="color:var(--accent);"></i>
+                        <div class="value" id="monthlyProfit">0</div>
+                        <div class="label">الأرباح الشهرية</div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-trophy" style="color:#8b5cf6;"></i>
+                        <div class="value" id="userRank">-</div>
+                        <div class="label">تصنيفك</div>
+                    </div>
+                </div>
+                
+                <h3 style="margin: 25px 0 15px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-history"></i> أحدث الاستثمارات
+                </h3>
+                <div id="recentInvestments" class="list-group">
+                    <!-- سيتم تعبئتها بالجافاسكريبت -->
+                    <div class="list-item" style="text-align: center; color: #94a3b8; padding: 30px;">
+                        <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                        <div>لا توجد استثمارات حالياً</div>
+                    </div>
+                </div>
+                
+               
+            </section>
 
-function loadMarket() {
-    onSnapshot(collection(db, "market_items"), (snap) => {
-        const table = document.querySelector("#marketTable tbody");
-        const select = document.getElementById("assetSelect");
-        if(!table || !select) return;
+            <!-- سوق الاستثمار -->
+            <section id="market" class="page">
+                <h3 style="margin-bottom:20px; display: flex; align-items: center; justify-content: space-between;">
+                    <span><i class="fas fa-store"></i> الفرص الاستثمارية المتاحة</span>
+                    <span style="font-size: 0.9rem; color: var(--primary); background: #ecfdf5; padding: 5px 15px; border-radius: 20px;" id="marketCount">0 فرصة</span>
+                </h3>
+                
+                
+                
+                <div id="marketList"></div>
+                
+                <div style="text-align: center; margin-top: 30px; color: #64748b; font-size: 0.9rem;">
+                    <i class="fas fa-info-circle"></i> جميع المشاريع خاضعة لرقابة الله عز وجل
+                </div>
+            </section>
 
-        table.innerHTML = "";
-        select.innerHTML = "<option value=''>-- اختر المنتج --</option>";
-        marketList = [];
+            <!-- المحفظة -->
+            <section id="wallet" class="page">
+                <div class="wallet-card">
+                    <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-wallet"></i> محفظتك المالية
+                    </h3>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                        <div style="background: #f0f9ff; padding: 15px; border-radius: 15px; border: 2px solid #e0f2fe;">
+                            <div style="font-size: 0.8rem; color: #0369a1;">الرصيد المتاح</div>
+                            <div style="font-size: 1.3rem; font-weight: 800;"><span id="availableBalance">0</span> ل.س</div>
+                        </div>
+                        <div style="background: #f0fdf4; padding: 15px; border-radius: 15px; border: 2px solid #dcfce7;">
+                            <div style="font-size: 0.8rem; color: #166534;">الأرباح المجمعة</div>
+                            <div style="font-size: 1.3rem; font-weight: 800;"><span id="totalProfit">0</span> ل.س</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="withdrawAmt"><i class="fas fa-money-bill-wave"></i> طلب سحب أرباح</label>
+                        <input type="number" id="withdrawAmt" class="form-control" placeholder="المبلغ المطلوب سحبه..." min="1000" step="1000">
+                        
+                    </div>
+                    
+                    <button class="btn-primary" onclick="requestWithdraw()" style="width: 100%; padding: 15px;">
+                        <i class="fas fa-paper-plane"></i> إرسال طلب السحب
+                    </button>
+                </div>
+                
+                <h3 style="margin: 25px 0 15px;"><i class="fas fa-history"></i> تاريخ المعاملات</h3>
+                <div id="transactionHistory" class="list-group">
+                    <!-- سيتم تعبئتها بالجافاسكريبت -->
+                </div>
+            </section>
 
-        snap.forEach(docSnap => {
-            const p = docSnap.data();
-            const item = { id: docSnap.id, ...p };
-            marketList.push(item);
+            <!-- الملف الشخصي -->
+            <section id="profile" class="page">
+                <div class="profile-sidebar">
+                    <div class="profile-avatar" id="userAvatar">
+                        <!-- سيتم تعبئته بالجافاسكريبت -->
+                    </div>
+                    <h2 id="profileName">...</h2>
+                    <div style="color: #64748b; margin-bottom: 20px;" id="profileEmail">...</div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+                        <div>
+                            <div class="label">رقم العضوية</div>
+                            <div class="value" style="font-weight: 600;" id="memberId">...</div>
+                        </div>
+                        <div>
+                            <div class="label">تاريخ الانضمام</div>
+                            <div class="value" style="font-weight: 600;" id="joinDate">...</div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="profileProgress" style="width: 30%;"></div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">
+                        <span id="progressText">30% مكتمل</span> - قم بإكمال ملفك الشخصي
+                    </div>
+                </div>
+                
+                <div class="list-group">
+                    <div class="list-item" onclick="openTab('wallet')" style="cursor: pointer;">
+                        <div><i class="fas fa-wallet" style="color: var(--secondary);"></i> محفظتي</div>
+                        <i class="fas fa-chevron-left"></i>
+                    </div>
+                    <div class="list-item" onclick="showSettings()" style="cursor: pointer;">
+                        <div><i class="fas fa-cog" style="color: #64748b;"></i> الإعدادات</div>
+                        <i class="fas fa-chevron-left"></i>
+                    </div>
+                    <div class="list-item" onclick="showHelp()" style="cursor: pointer;">
+                        <div><i class="fas fa-question-circle" style="color: var(--accent);"></i> المساعدة والدعم</div>
+                        <i class="fas fa-chevron-left"></i>
+                    </div>
+                    <div class="list-item" onclick="showAbout()" style="cursor: pointer;">
+                        <div><i class="fas fa-info-circle" style="color: var(--primary);"></i> عن التطبيق</div>
+                        <i class="fas fa-chevron-left"></i>
+                    </div>
+                    <div class="list-item" onclick="showLogoutConfirm()" style="cursor: pointer; color: var(--danger);">
+                        <div><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</div>
+                        <i class="fas fa-chevron-left"></i>
+                    </div>
+                </div>
+            </section>
+        </main>
 
-            table.innerHTML += `
-                <tr>
-                    <td>${p.name}</td>
-                    <td>${formatMoney(p.price)}</td>
-                    <td>${p.returnRate || 0}%</td>
-                    <td>${p.quantity || 0}</td>
-                    <td><span class="badge ${p.quantity > 0 ? 'bg-success' : 'bg-danger'}">${p.quantity > 0 ? 'متوفر' : 'نفذ'}</span></td>
-                    <td><button class="btn-icon red" onclick="deleteProduct('${docSnap.id}')"><i class="fas fa-trash"></i></button></td>
-                </tr>
-            `;
-            if (p.quantity > 0) {
-                select.innerHTML += `<option value="${item.id}">${p.name} - ${formatMoney(p.price)} ل.س</option>`;
+        <nav class="bottom-nav">
+            <div class="nav-item active" onclick="openTab('home', this)">
+                <i class="fas fa-home"></i><br>
+                <span>الرئيسية</span>
+            </div>
+            <div class="nav-item" onclick="openTab('market', this)">
+                <i class="fas fa-store"></i><br>
+                <span>السوق</span>
+            </div>
+            <div class="nav-item" onclick="openTab('wallet', this)">
+                <i class="fas fa-wallet"></i><br>
+                <span>المحفظة</span>
+            </div>
+            <div class="nav-item" onclick="openTab('profile', this)">
+                <i class="fas fa-user"></i><br>
+                <span>الملف الشخصي</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- نموذج تأكيد الخروج -->
+    <div id="logoutModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 20px; padding: 30px; width: 90%; max-width: 400px; text-align: center;">
+            <i class="fas fa-sign-out-alt" style="font-size: 3rem; color: var(--danger); margin-bottom: 20px;"></i>
+            <h3>تأكيد الخروج</h3>
+            <p style="margin: 20px 0; color: #64748b;">هل أنت متأكد من رغبتك في تسجيل الخروج؟</p>
+            <div style="display: flex; gap: 15px;">
+                <button onclick="closeModal('logoutModal')" style="flex: 1; background: #e2e8f0; border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer;">إلغاء</button>
+                <button onclick="logout()" style="flex: 1; background: var(--danger); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer;">تأكيد الخروج</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نموذج تأكيد الاستثمار -->
+    <div id="investmentModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 20px; padding: 30px; width: 90%; max-width: 400px;">
+            <h3 id="investmentTitle" style="margin-bottom: 20px;"></h3>
+            <div style="margin: 20px 0;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span>سعر السهم:</span>
+                    <span id="investmentPrice" style="font-weight: 600;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span>العائد المتوقع:</span>
+                    <span id="investmentReturn" style="color: var(--success); font-weight: 600;"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <span>المتاح حالياً:</span>
+                    <span id="investmentDuration" style="font-weight: 600;"></span>
+                </div>
+                <div class="form-group">
+                    <label>عدد الأسهم:</label>
+                    <input type="number" id="shareCount" class="form-control" value="1" min="1" max="100">
+                </div>
+                <div style="background: #f8fafc; padding: 15px; border-radius: 12px; margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; font-weight: 600;">
+                        <span>المبلغ الإجمالي:</span>
+                        <span id="totalInvestment">0</span> ل.س
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 15px;">
+                <button onclick="closeModal('investmentModal')" style="flex: 1; background: #e2e8f0; border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer;">إلغاء</button>
+                <button onclick="confirmInvestment()" style="flex: 1; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer;">تأكيد الاستثمار</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- مكتبة Chart.js للرسوم البيانية -->
+  
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { 
+            getFirestore, collection, query, where, getDocs, addDoc, doc, onSnapshot, 
+            serverTimestamp, runTransaction, updateDoc, orderBy, limit
+        } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        
+        // تأكد من استيراد الأدوات اللازمة في بداية السكريبت
+        import { setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+
+        // هذه الدالة هي المسؤولة عن الربط
+        async function handleAuth(type) {
+            const db = getFirestore();
+            const auth = getAuth();
+
+            if (type === 'register') {
+                // سحب البيانات من الحقول التي صممتها في HTML
+                const name = document.getElementById('regName').value;
+                const phone = document.getElementById('regPhone').value;
+                const password = document.getElementById('regPassword')?.value || "123456"; // تأكد من وجود ID بهذا الاسم
+
+                // إنشاء إيميل وهمي لأن Firebase Auth يتطلب إيميل
+                const email = phone + "@tajer.com"; 
+
+                try {
+                    // 1. إنشاء الحساب في نظام الحماية (Auth)
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    const user = userCredential.user;
+
+                    // 2. الربط السحري: تخزين البيانات في مجموعة users ليراها الأدمن فوراً
+                    await setDoc(doc(db, "users", user.uid), {
+                        uid: user.uid,
+                        name: name,
+                        phone: phone,
+                        email: email,
+                        password: password, // حفظها هنا ليتمكن الأدمن من رؤيتها في جدول الإدارة
+                        balance: 0,         // رصيد افتراضي
+                        assets: [],         // محفظة فارغة
+                        createdAt: serverTimestamp()
+                    });
+
+                    alert("تم تسجيلك بنجاح! يمكن للأدمن الآن رؤية حسابك.");
+                    showSection('dashboard'); // تحويل المستخدم للوحة التحكم الخاصة به
+                } catch (error) {
+                    console.error("خطأ:", error);
+                    alert("فشل التسجيل: " + error.message);
+                }
+                
+                // 1. قبل البدء بالتحديث، احفظ مكان السكرول
+                const scrollPos = window.scrollY; 
+
+                // ... هنا كود التحديث الخاص بك (innerHTML = ...)
+
+                // 2. بعد التحديث مباشرة، أعد السكرول لمكانه
+                window.scrollTo(0, scrollPos);
             }
-        });
-    });
-}
-
-const assetSelect = document.getElementById("assetSelect");
-const qtyInfo = document.getElementById("availableQtyInfo");
-const qtyInput = document.getElementById("assetQty");
-
-if (assetSelect) {
-    assetSelect.addEventListener("change", () => {
-        const itemId = assetSelect.value;
-        const item = marketList.find(i => i.id === itemId);
-
-        if (!item) {
-            qtyInfo.innerText = "الكمية المتوفرة: --";
-            qtyInput.max = 1;
-            qtyInput.value = 1;
-            return;
         }
 
-        qtyInfo.innerText = `الكمية المتوفرة: ${item.quantity}`;
-        qtyInput.max = item.quantity;
-        qtyInput.value = 1;
-    });
-}
-/*************************************************
- * إصلاحات منطق الشراء وتحديث الواجهة
- *************************************************/
-
-// 1. تحديث بيانات المنتج المختار في واجهة الشراء
-const updateProductUI = () => {
-    const assetSelect = document.getElementById("assetSelect");
-    const itemId = assetSelect.value;
-    const item = marketList.find(i => i.id === itemId);
-    const card = document.getElementById("productDetailCard");
-    const qtyInput = document.getElementById("assetQty");
-
-    if (!item) {
-        card.style.display = "none";
-        return;
-    }
-
-    card.style.display = "block";
-    document.getElementById("detailPrice").innerText = formatMoney(item.price) + " ل.س";
-    document.getElementById("detailReturn").innerText = (item.returnRate || 0) + "%";
-    document.getElementById("detailStock").innerText = item.quantity || 0;
-    
-    calculateTotal();
-};
-
-// 2. حساب المجموع الكلي ومقارنته بالرصيد
-const calculateTotal = () => {
-    const assetSelect = document.getElementById("assetSelect");
-    const item = marketList.find(i => i.id === assetSelect.value);
-    const qty = parseInt(document.getElementById("assetQty").value) || 0;
-    const totalDisplay = document.getElementById("totalPurchasePrice");
-    const warning = document.getElementById("balanceWarning");
-    const btn = document.getElementById("confirmPurchaseBtn");
-
-    if (!item) return;
-
-    const total = item.price * qty;
-    totalDisplay.innerText = formatMoney(total) + " ل.س";
-
-    // جلب رصيد المستخدم الحالي من السجل المفتوح
-    const currentBalance = cleanNumber(document.getElementById("currentBalanceSpan").innerText);
-    
-    if (total > currentBalance) {
-        warning.style.display = "block";
-        btn.style.opacity = "0.5";
-        btn.disabled = true;
-    } else {
-        warning.style.display = "none";
-        btn.style.opacity = "1";
-        btn.disabled = false;
-    }
-};
-
-// 3. ربط الأحداث للواجهة الاحترافية
-document.getElementById("assetSelect")?.addEventListener("change", updateProductUI);
-document.getElementById("assetQty")?.addEventListener("input", calculateTotal);
-
-// 4. دالة الشراء المطورة (التي كانت معطلة)
-// تأكد من حذف النسخ القديمة لهذه الدالة واستخدام هذه النسخة فقط
-window.confirmAddAsset = async () => {
-    const uid = document.getElementById("assetUserId").value;
-    const itemId = document.getElementById("assetSelect").value;
-    const qtyInput = document.getElementById("assetQty");
-    const qty = parseInt(qtyInput.value);
-    
-    // البحث عن المنتج في القائمة المحلية
-    const item = marketList.find(i => i.id === itemId);
-
-    // 1. التحقق المبدئي
-    if (!item || isNaN(qty) || qty <= 0) {
-        return showToast("يرجى اختيار منتج وتحديد كمية صحيحة", "error");
-    }
-
-    // ملاحظة: تأكد هل الحقل في الفايربيز اسمه quantity أم qty
-    // سأفترض أنه quantity بناءً على دالة loadMarket
-    if (item.quantity < qty) {
-        return showToast(`المخزون لا يكفي، المتوفر حالياً: ${item.quantity}`, "error");
-    }
-
-    const totalCost = item.price * qty;
-
-    // 2. نافذة التأكيد
-    const confirmed = await askConfirm(
-        "تأكيد عملية الشراء",
-        `هل أنت متأكد من شراء (${qty}) وحدة من "${item.name}"؟ \n التكلفة الإجمالية: ${formatMoney(totalCost)} ل.س`
-    );
-    
-    if (!confirmed) return;
-
-    const btn = document.getElementById("confirmPurchaseBtn");
-    setBtnLoading(btn, true);
-
-    try {
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
+        // جعل الدالة متاحة عالمياً للأزرار في HTML
+        window.handleAuth = handleAuth;
         
-        if (!userSnap.exists()) throw new Error("المستخدم غير موجود");
         
-        const userData = userSnap.data();
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyCI_0-7KsqnssqkOSkNVK0FmuRokDNXriE",
+            authDomain: "tajer-app-e1b97.firebaseapp.com",
+            projectId: "tajer-app-e1b97",
+            storageBucket: "tajer-app-e1b97.firebasestorage.app",
+            messagingSenderId: "92669858022",
+            appId: "1:92669858022:web:a1223e9121190815066b27"
+        };
 
-        // 3. التحقق من الرصيد
-        if (userData.balance < totalCost) {
-            throw new Error("عذراً، رصيد المستثمر غير كافٍ لإتمام العملية");
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let userDocId = localStorage.getItem('tajer_uid');
+       
+        let currentInvestment = null;
+
+        // التحقق من الجلسة
+        if (userDocId) {
+            startApp(userDocId);
         }
 
-        const batch = writeBatch(db);
+        // التبديل بين واجهة الدخول والتسجيل
+        window.toggleAuth = (showLogin) => {
+            document.getElementById('login-section').style.display = showLogin ? 'block' : 'none';
+            document.getElementById('register-section').style.display = showLogin ? 'none' : 'block';
+        };
 
-        // تجهيز بيانات الأصول
-        const newAssets = [];
-        for (let i = 0; i < qty; i++) {
-            newAssets.push({
-                assetId: crypto.randomUUID(),
-                name: item.name,
-                priceAtPurchase: Number(item.price),
-                purchaseDate: new Date().toISOString(),
-                returnRate: item.returnRate || 0
+        // معالجة الدخول أو التسجيل
+        window.handleAuth = async (type) => {
+            if (type === 'login') {
+                const phone = document.getElementById('loginPhone').value.trim();
+                if (!phone || phone.length < 10) {
+                    showToast("يرجى إدخال رقم جوال صحيح (10 أرقام)");
+                    return;
+                }
+
+                const loginBtn = document.getElementById('loginBtn');
+                const loginText = document.getElementById('loginText');
+                loginText.innerHTML = '<span class="loading"></span> جاري التحقق...';
+                loginBtn.disabled = true;
+
+                try {
+                    const q = query(collection(db, "users"), where("phone", "==", phone));
+                    const snap = await getDocs(q);
+
+                    if (snap.empty) {
+                        showToast("هذا الرقم غير مسجل، يرجى إنشاء حساب");
+                        loginText.textContent = 'دخول';
+                        loginBtn.disabled = false;
+                    } else {
+                        // حفظ المعرف في المتصفح قبل الانتقال
+                        localStorage.setItem('tajer_uid', snap.docs[0].id);
+                        loginSuccess(snap.docs[0].id);
+                    }
+                } catch (error) {
+                    console.error(error);
+                    showToast("حدث خطأ في الاتصال بقاعدة البيانات");
+                    loginText.textContent = 'دخول';
+                    loginBtn.disabled = false;
+                }
+            } else {
+                const name = document.getElementById('regName').value.trim();
+                const email = document.getElementById('regEmail').value.trim();
+                const phone = document.getElementById('regPhone').value.trim();
+                const terms = document.getElementById('terms').checked;
+
+                if (!name || !phone) {
+                    showToast("الاسم والرقم مطلوبان");
+                    return;
+                }
+                if (!terms) {
+                    showToast("يجب الموافقة على الشروط والأحكام");
+                    return;
+                }
+                if (phone.length < 10) {
+                    showToast("رقم الجوال يجب أن يكون 10 أرقام");
+                    return;
+                }
+
+                const registerBtn = document.getElementById('registerBtn');
+                const registerText = document.getElementById('registerText');
+                registerText.innerHTML = '<span class="loading"></span> جاري الحفظ...';
+                registerBtn.disabled = true;
+
+                try {
+                    // 1. التأكد أن الرقم غير مستخدم
+                    const q = query(collection(db, "users"), where("phone", "==", phone));
+                    const check = await getDocs(q);
+                    if (!check.empty) {
+                        showToast("هذا الرقم مسجل مسبقاً");
+                        registerText.textContent = 'إنشاء حساب جديد';
+                        registerBtn.disabled = false;
+                        return;
+                    }
+
+                    // 2. إنشاء الحساب الجديد
+                    const newUserDoc = {
+                        name,
+                        email: email || null,
+                        phone,
+                        balance: 0,
+                        assets: [],
+                        totalInvested: 0,
+                        totalProfit: 0,
+                        joinDate: serverTimestamp(),
+                        lastLogin: serverTimestamp(),
+                        notifications: [{
+                            title: "مرحباً بك في تاجر الزراعي",
+                            message: "تم إنشاء حسابك بنجاح، يمكنك البدء في الاستثمار الآن",
+                            date: new Date().toISOString(),
+                            read: false
+                        }]
+                    };
+
+                    const docRef = await addDoc(collection(db, "users"), newUserDoc);
+
+                    // 3. النجاح: حفظ المعرف والانتقال
+                    if (docRef.id) {
+                        localStorage.setItem('tajer_uid', docRef.id);
+                        loginSuccess(docRef.id);
+                    }
+                } catch (error) {
+                    console.error("Registration Error:", error);
+                    showToast("حدث خطأ أثناء إنشاء الحساب، تأكد من اتصالك");
+                    registerText.textContent = 'إنشاء حساب جديد';
+                    registerBtn.disabled = false;
+                }
+            }
+        };
+
+        
+        async function buyProduct(productName, price) {
+            if (!currentUser) {
+                alert("يرجى تسجيل الدخول أولاً");
+                return;
+            }
+
+            // 1. فحص الرصيد
+            if (currentUser.balance < price) {
+                alert("رصيدك غير كافٍ لإتمام عملية الشراء");
+                return;
+            }
+
+            if (confirm(`هل تريد تأكيد شراء ${productName} بمبلغ ${price} ل.س؟`)) {
+                try {
+                    const userRef = doc(db, "users", userDocId);
+                    const newBalance = currentUser.balance - price;
+
+                    // 2. تحديث البيانات في فايربيس
+                    await updateDoc(userRef, {
+                        balance: newBalance,
+                        // إضافة المنتج الجديد إلى مصفوفة الأصول (Assets)
+                        assets: arrayUnion({
+                            name: productName,
+                            priceAtPurchase: price,
+                            date: new Date()
+                        })
+                    });
+
+                    alert("تم الشراء بنجاح!");
+                    // التحديث سيظهر تلقائياً بفضل onSnapshot
+                } catch (error) {
+                    console.error("خطأ في عملية الشراء:", error);
+                    alert("حدث خطأ أثناء الشراء، حاول مجدداً");
+                }
+            }
+        }        
+        
+        function loginSuccess(id) {
+            localStorage.setItem('tajer_uid', id);
+            userDocId = id;
+            startApp(id);
+        }
+
+        function startApp(id) {
+            document.getElementById('auth-overlay').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('auth-overlay').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+            }, 300);
+
+            // مراقبة بيانات المستخدم لحظياً
+            onSnapshot(doc(db, "users", id), (snap) => {
+                if (snap.exists()) {
+                    currentUser = snap.data();
+                    updateUserDisplay();
+                    updateNotifications();
+                    loadRecentInvestments();
+                    loadTransactionHistory();
+                }
+            });
+
+            loadMarket();
+           
+        }
+
+        function updateUserDisplay() {
+            document.getElementById('userNameDisplay').innerText = currentUser.name;
+            document.getElementById('userPhoneDisplay').innerText = currentUser.phone;
+            document.getElementById('userBalanceDisplay').innerText = Number(currentUser.balance).toLocaleString();
+            document.getElementById('availableBalance').innerText = Number(currentUser.balance).toLocaleString();
+            document.getElementById('totalProfit').innerText = Number(currentUser.totalProfit || 0).toLocaleString();
+            
+            // حساب الأرباح الشهرية (نموذج بسيط)
+            const monthlyProfit = Math.floor((currentUser.totalProfit || 0) * 0.1);
+            document.getElementById('monthlyProfit').innerText = monthlyProfit.toLocaleString();
+            document.getElementById('profitAmount').innerText = monthlyProfit.toLocaleString();
+            
+            document.getElementById('userSharesCount').innerText = (currentUser.assets || []).length;
+            
+            const totalValue = (currentUser.assets || []).reduce((sum, a) => sum + Number(a.priceAtPurchase), 0);
+            document.getElementById('userAssetsValue').innerText = totalValue.toLocaleString();
+            document.getElementById('userRank').innerText = "#" + Math.floor(Math.random() * 100 + 1);
+            
+            // تحديث الملف الشخصي
+            document.getElementById('profileName').innerText = currentUser.name;
+            document.getElementById('profileEmail').innerText = currentUser.email || "لم يتم إضافة بريد إلكتروني";
+            document.getElementById('memberId').innerText = userDocId.substring(0, 8).toUpperCase();
+            
+            if (currentUser.joinDate) {
+                const date = currentUser.joinDate.toDate ? currentUser.joinDate.toDate() : new Date();
+                document.getElementById('joinDate').innerText = date.toLocaleDateString('ar-SA');
+            }
+            
+            // إنشاء الصورة الرمزية بناءً على الاسم
+            const avatar = document.getElementById('userAvatar');
+            const initials = currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
+            avatar.innerHTML = initials.substring(0, 2);
+            
+            // تحديث تقدم الملف الشخصي
+            const progress = calculateProfileProgress();
+            document.getElementById('profileProgress').style.width = progress + '%';
+            document.getElementById('progressText').textContent = progress + '% مكتمل';
+        }
+
+        function calculateProfileProgress() {
+            let progress = 20; // الأساس
+            if (currentUser.email) progress += 20;
+            if ((currentUser.assets || []).length > 0) progress += 30;
+            if (currentUser.balance > 0) progress += 15;
+            if (currentUser.totalProfit > 0) progress += 15;
+            return Math.min(progress, 100);
+        }
+
+        function updateNotifications() {
+            const notifications = currentUser.notifications || [];
+            const unreadCount = notifications.filter(n => !n.read).length;
+            const notificationCount = document.getElementById('notificationCount');
+            
+            if (unreadCount > 0) {
+                notificationCount.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                notificationCount.style.display = 'flex';
+            } else {
+                notificationCount.style.display = 'none';
+            }
+        }
+
+        function loadMarket() {
+            onSnapshot(collection(db, "market_items"), (snap) => {
+                const list = document.getElementById('marketList');
+                const marketCount = document.getElementById('marketCount');
+                let items = [];
+                
+                list.innerHTML = '';
+                snap.forEach(d => {
+                    const item = d.data();
+                    items.push({id: d.id, ...item});
+                });
+                
+                marketCount.textContent = items.length + ' فرصة';
+                
+                items.forEach(item => {
+                    list.innerHTML += createMarketItemHTML(item);
+                });
             });
         }
 
-        // 4. تنفيذ العمليات (Batch)
-        batch.update(userRef, { 
-            balance: increment(-totalCost), 
-            assets: arrayUnion(...newAssets) 
-        });
+         function createMarketItemHTML(item) {
+            const available = item.quantity > 0;
+            const returnColor = item.returnRate >= 15 ? '#10b981' : '#3b82f6';
 
-        batch.update(doc(db, "market_items", itemId), { 
-            quantity: increment(-qty) 
-        });
+            return `
+                <div class="market-item">
+                    <div style="flex-grow: 1;">
+                        <div style="font-size: 0.65rem; font-weight: 800; color: var(--primary); background: #ecfdf5; display: inline-block; padding: 2px 10px; border-radius: 20px; margin-bottom: 8px;">
+                            ${item.category || 'استثمار'}
+                        </div>
 
-        batch.set(doc(collection(db, "logs")), { 
-            text: `تم شراء ${qty} من (${item.name}) للمستثمر ${userData.name}`,
-            type: 'purchase',
-            timestamp: serverTimestamp() 
-        });
+                        <strong style="display: block; font-size: 0.9rem; color: #1e293b; line-height: 1.4; margin-bottom: 10px; min-height: 2.8em;">
+                            ${item.name}
+                        </strong>
 
-        await batch.commit();
+                        <div style="margin-bottom: 12px;">
+                            <span style="font-size: 0.7rem; color: #94a3b8; display: block;">سعر السهم</span>
+                            <span style="font-size: 1.1rem; font-weight: 800; color: var(--text-main);">
+                                ${Number(item.price).toLocaleString()} <small style="font-size: 0.7rem;">ل.س</small>
+                            </span>
+                        </div>
 
-        showToast("تمت عملية الشراء بنجاح!");
-        closeModal("assetModal");
-        
-    } catch (e) { 
-        console.error("Purchase Error:", e);
-        showToast(e.message || "حدث خطأ أثناء التنفيذ", "error"); 
-    } finally { 
-        setBtnLoading(btn, false); 
-    }
-};
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; background: #f8fafc; padding: 8px; border-radius: 12px; margin-bottom: 10px; text-align: center;">
+                            <div style="border-left: 1px solid #e2e8f0;">
+                                <div style="font-size: 0.6rem; color: #64748b;">العائد التقديري</div>
+                                <div style="font-weight: 800; font-size: 0.85rem; color: ${returnColor};">${item.returnRate}%</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.6rem; color: #64748b;">الأسهم المتاحة</div>
+                                <div style="font-weight: 800; font-size: 0.85rem; color: ${item.quantity < 10 ? '#ef4444' : '#1e293b'};">
+                                    ${item.quantity} سهم
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-// إضافة وظيفة لفتح نافذة الشراء مع جلب الرصيد
-window.openAssetModal = async (id) => {
-    const userSnap = await getDoc(doc(db, "users", id));
-    if (userSnap.exists()) {
-        document.getElementById("currentBalanceSpan").innerText = formatMoney(userSnap.data().balance) + " ل.س";
-        document.getElementById("assetUserId").value = id;
-        openModal("assetModal");
-        updateProductUI(); // لتصفير البيانات السابقة
-    }
-};
-
-function loadLogs() {
-    onSnapshot(query(collection(db, "logs"), orderBy("timestamp", "desc"), limit(50)), (snap) => {
-        const fullLogContainer = document.getElementById("logsTimeline");
-        const miniLogContainer = document.getElementById("miniLogBox");
-        if (!fullLogContainer) return;
-
-        fullLogContainer.innerHTML = "";
-        if (miniLogContainer) miniLogContainer.innerHTML = "";
-
-        let lastDate = "";
-        let count = 0;
-
-        snap.forEach(docSnap => {
-            const log = docSnap.data();
-            const dateObj = log.timestamp ? log.timestamp.toDate() : new Date();
-            const dateStr = dateObj.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            const timeStr = dateObj.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-
-            if (dateStr !== lastDate) {
-                fullLogContainer.innerHTML += `<div class="timeline-date">${dateStr}</div>`;
-                lastDate = dateStr;
-            }
-
-            fullLogContainer.innerHTML += `
-                <div class="timeline-item">
-                    <div class="time">${timeStr}</div>
-                    <div class="content">${log.text}</div>
+                    <button class="btn-invest-mini" 
+                        onclick="showInvestmentModal('${item.id}', '${item.name}', ${item.price}, ${item.returnRate}, ${item.quantity})"
+                        ${!available ? 'disabled style="background:#cbd5e1;"' : ''}>
+                        ${available ? '<i class="fas fa-rocket"></i> استثمر الآن' : 'مباع بالكامل'}
+                    </button>
                 </div>
             `;
-
-            if (count < 4 && miniLogContainer) {
-                miniLogContainer.innerHTML += `
-                    <div style="padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9em; display:flex; justify-content:space-between;">
-                        <span style="color:#333;">${log.text}</span>
-                        <span style="color:#999; font-size:0.8em;">${timeStr}</span>
-                    </div>
-                `;
-            }
-            count++;
-        });
-    });
-}
-
-/*************************************************
- * 5. Actions (الوظائف التنفيذية)
- *************************************************/
-
-window.addProduct = async () => {
-    const name = document.getElementById("pName").value;
-    const price = cleanNumber(document.getElementById("pPrice").value);
-    const ret = document.getElementById("pReturn").value;
-    const qty = cleanNumber(document.getElementById("pQty").value);
-
-    if (!name || price <= 0) return showToast("يرجى إدخال اسم وسعر صحيح", "error");
-    const btn = document.querySelector("#market button");
-    setBtnLoading(btn, true);
-
-    try {
-        await addDoc(collection(db, "market_items"), {
-            name, price: Number(price), returnRate: Number(ret) || 0,
-            quantity: Number(qty) || 0, createdAt: serverTimestamp()
-        });
-        showToast("تمت إضافة المنتج للسوق");
-        document.getElementById("pName").value = "";
-        document.getElementById("pPrice").value = "";
-        document.getElementById("pReturn").value = "";
-        document.getElementById("pQty").value = "";
-        logAction(`إضافة منتج: ${name}`);
-    } catch (e) { showToast("خطأ في الإضافة", "error"); }
-    finally { setBtnLoading(btn, false); }
-};
-
-window.confirmAddAsset = async () => {
-    const uid = document.getElementById("assetUserId").value;
-    const itemId = document.getElementById("assetSelect").value;
-    const qtyInput = document.getElementById("assetQty");
-    const qty = Number(qtyInput.value);
-    
-    // البحث عن المنتج في القائمة المحلية
-    const item = marketList.find(i => i.id === itemId);
-
-    // 1. التحقق المبدئي
-    if (!item || qty <= 0) return showToast("يرجى اختيار منتج وكمية صحيحة", "error");
-    if (item.qty < qty) return showToast(`المخزون لا يكفي، المتوفر: ${item.qty}`, "error");
-
-    const totalCost = item.price * qty;
-
-    // 2. نافذة تأكيد احترافية
-    const confirmed = await askConfirm(
-        "تأكيد عملية الشراء",
-        `هل أنت متأكد من شراء (${qty}) وحدة من "${item.name}"؟ \n التكلفة الإجمالية: ${formatMoney(totalCost)} ل.س`
-    );
-    if (!confirmed) return;
-
-    const btn = document.getElementById("confirmPurchaseBtn");
-    setBtnLoading(btn, true);
-
-    try {
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
-        const userData = userSnap.data();
-
-        // 3. التحقق من رصيد المستخدم
-        if (userData.balance < totalCost) {
-            showToast("فشل العملية: رصيد المستثمر غير كافٍ", "error");
-            setBtnLoading(btn, false);
-            return;
         }
 
-        const batch = writeBatch(db);
+      
 
-        // تجهيز بيانات الأصول الجديدة التي ستضاف للمستثمر
-        const newAssets = Array(qty).fill().map(() => ({
-            id: crypto.randomUUID(),
-            name: item.name,
-            priceAtPurchase: Number(item.price),
-            expectedReturn: item.return || 0, // أضفنا العائد هنا أيضاً
-            boughtAt: new Date().toISOString()
-        }));
+        window.showInvestmentModal = (itemId, name, price, returnRate, quantity) => {
+            // تخزين البيانات في المتغير الحالي لتستخدم عند التأكيد
+            currentInvestment = { itemId, name, price, returnRate, quantity };
 
-        // 4. تنفيذ العمليات (Batch) لضمان الدقة
-        // خصم الرصيد وإضافة الأصول للمستخدم
-        batch.update(userRef, { 
-            balance: increment(-totalCost), 
-            assets: arrayUnion(...newAssets) 
-        });
+            document.getElementById('investmentTitle').textContent = name;
+            document.getElementById('investmentPrice').textContent = price.toLocaleString() + ' ل.س';
+            document.getElementById('investmentReturn').textContent = returnRate + '% سنوياً';
 
-        // خصم الكمية من المخزن (السوق)
-        batch.update(doc(db, "market_items", itemId), { 
-            qty: increment(-qty) // تأكد أن الحقل في قاعدة البيانات اسمه qty
-        });
+            // عرض الكمية المتاحة وتغيير لونها للأحمر إذا كانت قليلة
+            const durationEl = document.getElementById('investmentDuration');
+            durationEl.textContent = quantity + ' سهم';
+            durationEl.style.color = quantity < 10 ? '#ef4444' : '#1e293b';
 
-        // تسجيل العملية في السجل
-        batch.set(doc(collection(db, "logs")), { 
-            text: `تم شراء ${qty} من (${item.name}) للمستثمر ${userData.name} بمبلغ ${formatMoney(totalCost)}`,
-            type: 'purchase',
-            timestamp: serverTimestamp() 
-        });
+            // منع المستخدم من شراء أكثر من الموجود
+            const shareInput = document.getElementById('shareCount');
+            shareInput.max = quantity;
+            shareInput.value = 1; 
 
-        await batch.commit();
+            updateInvestmentTotal();
+            document.getElementById('investmentModal').style.display = 'flex';
+        };
 
-        showToast("تمت عملية الشراء بنجاح وتحديث محفظة المستثمر");
-        closeModal("assetModal");
-        
-        // إعادة تصفير الحقول
-        qtyInput.value = 1;
-        if(typeof loadInvestors === 'function') loadInvestors(); // تحديث القائمة فوراً
+        window.handleWithdraw = () => {
+            // جلب القيمة من الحقل الجديد
+            const amountInput = document.getElementById('withdrawAmountInput');
+            const amount = parseFloat(amountInput.value);
 
-    } catch (e) { 
-        console.error(e);
-        showToast("حدث خطأ تقني أثناء تنفيذ العملية", "error"); 
-    } finally { 
-        setBtnLoading(btn, false); 
-    }
-};
-window.executeDistribution = async () => {
-    const profitInput = document.getElementById("profitInput");
-    const totalProfit = cleanNumber(profitInput.value);
-    if (totalProfit <= 0 || globalTotalShares <= 0) return showToast("بيانات التوزيع غير صحيحة", "error");
-
-    const perShare = totalProfit / globalTotalShares;
-    const confirmed = await askConfirm("توزيع الأرباح", `توزيع ${formatMoney(totalProfit)} ل.س؟`);
-    if (!confirmed) return;
-
-    const btn = document.getElementById("distributeBtn");
-    setBtnLoading(btn, true);
-
-    try {
-        const usersSnap = await getDocs(collection(db, "users"));
-        const batch = writeBatch(db);
-        usersSnap.forEach(docSnap => {
-            const u = docSnap.data();
-            const invested = (u.assets || []).reduce((sum, a) => sum + (Number(a.priceAtPurchase)||0), 0);
-            const shares = currentSharePrice > 0 ? (invested / currentSharePrice) : 0;
-            if (shares > 0) {
-                batch.update(doc(db, "users", docSnap.id), { balance: increment(shares * perShare) });
+            // التحقق من المدخلات والرصيد
+            if (!amount || amount < 5000) {
+                showToast("الحد الأدنى للسحب هو 5,000 ل.س");
+                return;
             }
+
+            if (amount > currentUser.balance) {
+                showToast("عذراً، رصيدك الحالي غير كافٍ");
+                return;
+            }
+
+            // إضافة العملية للسجل الحقيقي
+            const transaction = {
+                type: 'withdrawal',
+                amount: amount,
+                date: new Date().toISOString(), // تاريخ اللحظة الحالية
+                status: 'pending'
+            };
+
+            // خصم الرصيد وإضافة المعاملة
+            currentUser.balance -= amount;
+            userTransactions.unshift(transaction);
+
+            // تحديث الواجهة فوراً
+            updatePortfolioUI();
+            loadTransactionHistory();
+
+            showToast("تم إرسال طلب السحب بنجاح");
+            closeModal('withdrawModal');
+            amountInput.value = ''; // تصفير الحقل
+        };       
+        
+        window.updateInvestmentTotal = () => {
+            const shareCount = parseInt(document.getElementById('shareCount').value) || 1;
+            const total = shareCount * currentInvestment.price;
+            document.getElementById('totalInvestment').textContent = total.toLocaleString();
+        };
+
+        window.confirmInvestment = async () => {
+            const shareCount = parseInt(document.getElementById('shareCount').value) || 1;
+            const totalAmount = shareCount * currentInvestment.price;
+            
+            if (currentUser.balance < totalAmount) {
+                showToast("رصيدك لا يكفي لإتمام هذه العملية");
+                return;
+            }
+            
+            if (!confirm(`تأكيد استثمار مبلغ ${totalAmount.toLocaleString()} ل.س في ${currentInvestment.name}؟`)) return;
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const mRef = doc(db, "market_items", currentInvestment.itemId);
+                    const uRef = doc(db, "users", userDocId);
+                    
+                    const mDoc = await transaction.get(mRef);
+                    const uDoc = await transaction.get(uRef);
+                    
+                    if (mDoc.data().quantity < shareCount) {
+                        throw "الكمية المطلوبة غير متوفرة";
+                    }
+                    
+                    // تحديث كمية السوق
+                    transaction.update(mRef, { 
+                        quantity: mDoc.data().quantity - shareCount 
+                    });
+                    
+                    // تحديث بيانات المستخدم
+                    const newAssets = uDoc.data().assets || [];
+                    for (let i = 0; i < shareCount; i++) {
+                    newAssets.push({ 
+                        id: currentInvestment.itemId,
+                        name: currentInvestment.name, 
+                        priceAtPurchase: currentInvestment.price, 
+                        date: new Date().toISOString(),
+                        returnRate: currentInvestment.returnRate || 0, // قيمة افتراضية إذا لم يوجد
+                        duration: currentInvestment.duration || "غير محدد" // حماية ضد الـ undefined
+                    });
+                    }
+                    
+                    transaction.update(uRef, {
+                        balance: uDoc.data().balance - totalAmount,
+                        assets: newAssets,
+                        totalInvested: (uDoc.data().totalInvested || 0) + totalAmount,
+                        notifications: [...(uDoc.data().notifications || []), {
+                            title: "استثمار جديد",
+                            message: `تم استثمار ${totalAmount.toLocaleString()} ل.س في ${currentInvestment.name}`,
+                            date: new Date().toISOString(),
+                            read: false
+                        }]
+                    });
+                });
+                
+                showToast("تمت عملية الاستثمار بنجاح 🎉");
+                closeModal('investmentModal');
+            } catch (e) { 
+                showToast(e.message || "حدث خطأ أثناء عملية الاستثمار"); 
+            }
+        };
+
+        function loadRecentInvestments() {
+            const container = document.getElementById('recentInvestments');
+            const assets = currentUser.assets || [];
+
+            if (assets.length === 0) {
+                container.innerHTML = `
+                    <div class="list-item" style="text-align: center; color: #94a3b8; padding: 30px;">
+                        <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                        <div>لا توجد استثمارات نشطة حالياً</div>
+                        <button onclick="openTab('market')" style="margin-top: 15px; background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">
+                            ابدأ بالاستثمار الآن
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+
+            // --- منطق التجميع (Grouping) ---
+            const grouped = assets.reduce((acc, curr) => {
+                const key = curr.name; 
+                if (!acc[key]) {
+                    acc[key] = { 
+                        name: curr.name, 
+                        count: 0, 
+                        totalPrice: 0, 
+                        lastDate: curr.date,
+                        returnRate: curr.returnRate || 0 
+                    };
+                }
+                acc[key].count += 1;
+                acc[key].totalPrice += Number(curr.priceAtPurchase);
+                return acc;
+            }, {});
+
+            // عرض المنتجات المجمعة بشكل أنيق
+            Object.values(grouped).reverse().forEach(item => {
+                const date = new Date(item.lastDate).toLocaleDateString('ar-SY');
+                container.innerHTML += `
+                    <div class="list-item" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #f1f5f9; background: white;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="background: #ecfdf5; color: #10b981; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-seedling"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight: 700; color: #1e293b;">${item.name}</div>
+                                <div style="font-size: 0.8rem; color: #64748b;">العدد المستثمر: <span style="color: var(--primary); font-weight: bold;">${item.count}</span></div>
+                            </div>
+                        </div>
+                        <div style="text-align: left;">
+                            <div style="font-weight: 800; color: var(--text-main);">${item.totalPrice.toLocaleString()} ل.س</div>
+                            <div style="font-size: 0.7rem; color: #94a3b8;">${date}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        function loadTransactionHistory() {
+            const container = document.getElementById('transactionHistory');
+            if (!container) return;
+
+            // 1. مسح أي معلومات وهمية سابقة
+            container.innerHTML = '';
+
+            // 2. جلب البيانات من مصفوفة العمليات الحقيقية (المفترض أنها تعبأ من Firebase)
+            // إذا كانت المصفوفة فارغة، سنعرض رسالة "لا توجد عمليات"
+            if (!userTransactions || userTransactions.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding:30px; color:#94a3b8;">
+                        <i class="fas fa-history" style="font-size:2rem; margin-bottom:10px; opacity:0.3;"></i>
+                        <p>لا توجد عمليات مسجلة حتى الآن</p>
+                    </div>`;
+                return;
+            }
+
+            // 3. عرض العمليات الحقيقية فقط
+            userTransactions.forEach(trans => {
+                const typeNames = {
+                    'deposit': 'إيداع رصيد',
+                    'withdrawal': 'سحب رصيد',
+                    'investment': 'استثمار',
+                    'profit': 'أرباح'
+                };
+
+                const dateObj = new Date(trans.date);
+                const formattedDate = dateObj.toLocaleDateString('ar-SA', {
+                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                });
+
+                container.innerHTML += `
+                    <div class="transaction-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f1f5f9;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="color: var(--primary);"><i class="fas fa-exchange-alt"></i></div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 0.9rem;">${typeNames[trans.type] || trans.type}</div>
+                                <div style="font-size: 0.7rem; color: #94a3b8;">${formattedDate}</div>
+                            </div>
+                        </div>
+                        <div style="font-weight: 800; color: ${trans.type === 'deposit' ? '#10b981' : '#ef4444'}">
+                            ${Number(trans.amount).toLocaleString()} ل.س
+                        </div>
+                    </div>`;
+            });
+        }
+
+        
+
+        window.setWithdrawAmount = (amount) => {
+            document.getElementById('withdrawAmt').value = amount;
+        };
+
+        window.requestWithdraw = async () => {
+            const amt = Number(document.getElementById('withdrawAmt').value);
+            if (!amt || amt <= 0) {
+                showToast("أدخل مبلغاً صحيحاً");
+                return;
+            }
+            
+            if (amt < 1000) {
+                showToast("الحد الأدنى للسحب هو 1,000 ل.س");
+                return;
+            }
+            
+            if (amt > currentUser.balance) {
+                showToast("المبلغ يتجاوز رصيدك المتاح");
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "withdrawals"), {
+                    userId: userDocId,
+                    userName: currentUser.name,
+                    amount: amt,
+                    status: 'pending',
+                    timestamp: serverTimestamp(),
+                    userPhone: currentUser.phone
+                });
+                
+                // تحديث إشعارات المستخدم
+                await updateDoc(doc(db, "users", userDocId), {
+                    notifications: [...(currentUser.notifications || []), {
+                        title: "طلب سحب أموال",
+                        message: `تم إرسال طلب سحب بقيمة ${amt.toLocaleString()} ل.س. قيد المراجعة`,
+                        date: new Date().toISOString(),
+                        read: false
+                    }]
+                });
+                
+                showToast("تم إرسال طلب السحب للإدارة ✓");
+                document.getElementById('withdrawAmt').value = '';
+                
+            } catch (error) {
+                showToast("حدث خطأ أثناء إرسال الطلب");
+            }
+        };
+
+        window.openTab = (id, el) => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            
+            if (el) {
+                el.classList.add('active');
+            } else {
+                // إذا لم يتم تمرير العنصر، ابحث عنه بناءً على الـ id
+                const navItems = document.querySelectorAll('.nav-item');
+                navItems.forEach(item => {
+                    if (item.querySelector('span').textContent === getTabName(id)) {
+                        item.classList.add('active');
+                    }
+                });
+            }
+            
+           
+        };
+
+        function getTabName(id) {
+            const names = {
+                'home': 'الرئيسية',
+                'market': 'السوق',
+                'wallet': 'المحفظة',
+                'profile': 'الملف الشخصي'
+            };
+            return names[id] || '';
+        }
+
+        window.showLogoutConfirm = () => {
+            document.getElementById('logoutModal').style.display = 'flex';
+        };
+
+        window.closeModal = (modalId) => {
+            document.getElementById(modalId).style.display = 'none';
+        };
+
+        window.logout = () => {
+            localStorage.removeItem('tajer_uid');
+            location.reload();
+        };
+
+        window.showNotifications = () => {
+            showToast("سيتم عرض الإشعارات قريباً");
+            // يمكنك إضافة منطق لعرض الإشعارات هنا
+        };
+
+        window.showSettings = () => {
+            showToast("صفحة الإعدادات قيد التطوير");
+        };
+
+        window.showHelp = () => {
+            showToast("مركز المساعدة والدعم قيد التطوير");
+        };
+
+        window.showAbout = () => {
+            showToast("تاجر الزراعي - منصة الاستثمار الزراعي الرائدة في سوريا");
+        };
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerHTML = msg;
+            t.style.display = 'block';
+            
+            setTimeout(() => {
+                t.style.display = 'none';
+            }, 3000);
+        }
+
+        // تحديث المجموع عند تغيير عدد الأسهم
+        document.addEventListener('DOMContentLoaded', function() {
+            const shareCountInput = document.getElementById('shareCount');
+            if (shareCountInput) {
+                shareCountInput.addEventListener('input', updateInvestmentTotal);
+                shareCountInput.addEventListener('change', updateInvestmentTotal);
+            }
+            
+            // جعل حقول الإدخال تستجيب للزر Enter
+            const authInputs = document.querySelectorAll('.auth-input');
+            authInputs.forEach(input => {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        if (document.getElementById('login-section').style.display !== 'none') {
+                            handleAuth('login');
+                        } else {
+                            handleAuth('register');
+                        }
+                    }
+                });
+            });
         });
-        batch.set(doc(collection(db, "logs")), { text: `توزيع أرباح بقيمة ${totalProfit}`, timestamp: serverTimestamp() });
-        await batch.commit();
-        showToast("تم التوزيع بنجاح");
-        profitInput.value = "";
-    } catch (e) { showToast("فشل التوزيع", "error"); }
-    finally { setBtnLoading(btn, false); }
-};
-
-window.confirmAddUser = async () => {
-    const name = document.getElementById("newUserName").value;
-    const phone = document.getElementById("newUserPhone").value;
-    const balance = cleanNumber(document.getElementById("newUserBalance").value);
-    if (!name) return showToast("الاسم مطلوب", "error");
-
-    const btn = document.querySelector("#userModal .btn-primary");
-    setBtnLoading(btn, true);
-    try {
-        await addDoc(collection(db, "users"), { name, phone, balance, assets: [], createdAt: serverTimestamp() });
-        showToast("تمت إضافة المستثمر");
-        closeModal("userModal");
-        logAction(`إضافة مستثمر: ${name}`);
-    } catch (e) { showToast("خطأ", "error"); }
-    finally { setBtnLoading(btn, false); }
-};
-
-
-window.confirmEditBalance = async () => {
-    const uid = document.getElementById("editUserId").value;
-    const rawVal = document.getElementById("balanceAmount").value.replace(/,/g, '');
-    const finalAmount = Number(rawVal);
-    if (finalAmount === 0) return showToast("أدخل المبلغ", "error");
-
-    const confirmed = await askConfirm("تعديل الرصيد", `تعديل الرصيد بقيمة ${formatMoney(finalAmount)}؟`);
-    if (!confirmed) return;
-
-    try {
-        await updateDoc(doc(db, "users", uid), { balance: increment(finalAmount) });
-        showToast("تم تحديث المحفظة");
-        closeModal("balanceModal");
-        logAction(`تعديل رصيد مستخدم بقيمة ${finalAmount}`);
-    } catch (e) { showToast("خطأ", "error"); }
-};
-
-window.deleteUser = async (id) => {
-    if (await askConfirm("حذف مستثمر", "هل أنت متأكد؟")) {
-        await deleteDoc(doc(db, "users", id));
-        showToast("تم الحذف");
-    }
-};
-
-window.deleteProduct = async (id) => {
-    if (await askConfirm("حذف منتج", "هل أنت متأكد؟")) {
-        await deleteDoc(doc(db, "market_items", id));
-        showToast("تم الحذف");
-    }
-};
-
-
-window.saveSharePrice = async () => {
-    const val = cleanNumber(document.getElementById("manualSharePriceInput").value);
-    if (val <= 0) return showToast("أدخل سعراً صحيحاً", "error");
-    if (await askConfirm("تحديث السهم", `تغيير السعر لـ ${formatMoney(val)}؟`)) {
-        await setDoc(doc(db, "global_settings", "market_prices"), { cow: val, updatedAt: serverTimestamp() });
-        showToast("تم التحديث");
-        closeModal("sharePriceModal");
-    }
-};
-
-window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
-
-async function logAction(text) {
-    try { await addDoc(collection(db, "logs"), { text, timestamp: serverTimestamp() }); } catch(e){}
-}
-function updateText(id, val) { const el = document.getElementById(id); if(el) el.innerText = val; }
-window.openModal = (id) => document.getElementById(id).classList.add("show");
-window.closeModal = (id) => document.getElementById(id).classList.remove("show");
-window.openTab = (id, btn) => {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    document.getElementById(id).classList.add("active");
-    document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
-    if (btn) btn.classList.add("active");
-};
-
-
-
-window.openAssetModal = (id) => { document.getElementById("assetUserId").value = id; openModal("assetModal"); };
-window.openBalanceModal = (id) => { document.getElementById("editUserId").value = id; openModal("balanceModal"); };
+    </script>
+</body>
+</html>
