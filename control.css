@@ -170,7 +170,6 @@ p {
   transition: all var(--transition-slow) cubic-bezier(0.4, 0, 0.2, 1);
   overflow-y: auto;
   overflow-x: hidden;
-  @extend .glass-effect;
   border-left: 1px solid var(--glass-border);
   border-right: none;
 }
@@ -188,16 +187,12 @@ p {
   color: var(--color-primary);
   margin-left: 0.75rem;
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
 .sidebar-header span {
   font-size: 1.25rem;
   font-weight: 800;
   background: linear-gradient(135deg, var(--color-text-primary), var(--color-primary-light));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
 .sidebar-header span::after {
@@ -251,6 +246,16 @@ p {
   transition: all var(--transition-fast);
   position: relative;
   overflow: hidden;
+  /* FIX: Ensure z-index is higher than backgrounds */
+  z-index: 2; 
+}
+
+/* FIX: Prevent icons from blocking clicks on buttons */
+.nav button i,
+.btn i,
+.menu-toggle i,
+.nav-item i {
+  pointer-events: none;
 }
 
 .nav button i {
@@ -305,6 +310,8 @@ p {
   padding: 1.5rem;
   min-height: 100vh;
   transition: margin-right var(--transition-slow);
+  position: relative; 
+  z-index: 1; 
 }
 
 .main.expanded {
@@ -328,13 +335,11 @@ p {
   border: none;
   cursor: pointer;
   font-size: 1.25rem;
-  @extend .depth-layer-2;
   transition: all var(--transition-base);
 }
 
 .menu-toggle:hover {
   transform: translateY(-2px);
-  @extend .depth-layer-3;
 }
 
 /* 8. STATISTICS CARDS - GLASSMORPHISM */
@@ -351,15 +356,9 @@ p {
   position: relative;
   overflow: hidden;
   transition: all var(--transition-base);
-  @extend .glass-effect;
   border: 1px solid var(--glass-border);
+  z-index: 1; /* Ensure card content establishes stacking context */
 }
-
-.stat-card, .section, tr {
-        margin-left: 5px !important;
-        margin-right: 5px !important;
-        width: auto !important; /* للسماح للهوامش بالظهور */
-    }
 
 .stat-card::before {
   content: "";
@@ -374,7 +373,6 @@ p {
 
 .stat-card:hover {
   transform: translateY(-5px);
-  @extend .depth-layer-2;
   border-color: rgba(139, 92, 246, 0.2);
 }
 
@@ -423,14 +421,14 @@ p {
   border-radius: var(--radius-xl);
   padding: 1.75rem;
   margin-bottom: 1.5rem;
-  @extend .depth-layer-1;
   border: 1px solid var(--color-border);
   transition: all var(--transition-base);
+  position: relative;
+  z-index: 1;
 }
 
 .section:hover {
   border-color: rgba(139, 92, 246, 0.2);
-  @extend .depth-layer-2;
 }
 
 .section-header {
@@ -472,8 +470,10 @@ p {
   font-size: 0.9rem;
   cursor: pointer;
   transition: all var(--transition-base);
-  position: relative;
+  position: relative; /* Essential for z-index */
   overflow: hidden;
+  z-index: 5; /* FIX: Raised z-index to sit above overlays */
+  pointer-events: auto; 
 }
 
 .btn::before {
@@ -487,6 +487,7 @@ p {
   background: rgba(255, 255, 255, 0.1);
   transform: translate(-50%, -50%);
   transition: width 0.6s, height 0.6s;
+  pointer-events: none; /* Prevent pseudo-element from blocking clicks */
 }
 
 .btn:hover::before {
@@ -501,11 +502,9 @@ p {
 .btn-primary {
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
   color: white;
-  @extend .depth-layer-1;
 }
 
 .btn-primary:hover {
-  @extend .depth-layer-2;
   transform: translateY(-2px);
 }
 
@@ -541,7 +540,6 @@ table {
   border-spacing: 0;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  @extend .glass-effect-light;
 }
 
 thead {
@@ -643,8 +641,9 @@ td {
   transform: translateY(20px) scale(0.95);
   opacity: 0;
   transition: all var(--transition-base);
-  @extend .glass-effect;
   border: 1px solid var(--glass-border);
+  pointer-events: auto;
+  z-index: 1001;
 }
 
 .modal-overlay.active .modal-box {
@@ -678,6 +677,8 @@ td {
   align-items: center;
   justify-content: center;
   transition: all var(--transition-fast);
+  pointer-events: auto;
+  z-index: 10;
 }
 
 .modal-close:hover {
@@ -700,6 +701,9 @@ input, select, textarea {
   font-family: 'Tajawal', sans-serif;
   font-size: 0.95rem;
   transition: all var(--transition-fast);
+  pointer-events: auto; 
+  position: relative; /* Ensure inputs work */
+  z-index: 2;
 }
 
 input:focus, select:focus, textarea:focus {
@@ -726,15 +730,16 @@ input:focus, select:focus, textarea:focus {
 .withdraw-card {
   padding: 1.5rem;
   border-radius: var(--radius-lg);
-  @extend .glass-effect-light;
   border: 1px solid var(--color-border);
   transition: all var(--transition-base);
+  pointer-events: auto; 
+  position: relative;
+  z-index: 1;
 }
 
 .withdraw-card:hover {
   transform: translateY(-3px);
   border-color: rgba(139, 92, 246, 0.3);
-  @extend .depth-layer-1;
 }
 
 .withdraw-card h4 {
@@ -769,6 +774,7 @@ input:focus, select:focus, textarea:focus {
   height: 100%;
   width: 2px;
   background: linear-gradient(to bottom, var(--color-primary), transparent);
+  pointer-events: none; 
 }
 
 .log-item {
@@ -790,6 +796,7 @@ input:focus, select:focus, textarea:focus {
   border-radius: 50%;
   background: var(--color-primary);
   border: 2px solid var(--color-bg-secondary);
+  pointer-events: none; 
 }
 
 /* 17. TOAST NOTIFICATIONS */
@@ -797,12 +804,10 @@ input:focus, select:focus, textarea:focus {
   position: fixed;
   top: 1.5rem;
   right: 50%;
-  transform: translateX(50%);
   padding: 1rem 1.5rem;
   border-radius: var(--radius-lg);
   background: var(--color-bg-tertiary);
   color: var(--color-text-primary);
-  @extend .depth-layer-2;
   border: 1px solid var(--color-border);
   display: flex;
   align-items: center;
@@ -811,6 +816,7 @@ input:focus, select:focus, textarea:focus {
   opacity: 0;
   transform: translateX(50%) translateY(-20px);
   transition: all var(--transition-base);
+  pointer-events: auto; 
 }
 
 .toast-msg.show {
@@ -834,7 +840,6 @@ input:focus, select:focus, textarea:focus {
   padding: 0.5rem;
   justify-content: space-around;
   align-items: center;
-  @extend .glass-effect;
 }
 
 .nav-item {
@@ -851,6 +856,9 @@ input:focus, select:focus, textarea:focus {
   padding: 0.5rem;
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
+  pointer-events: auto;
+  position: relative;
+  z-index: 100;
 }
 
 .nav-item i {
@@ -903,8 +911,9 @@ input:focus, select:focus, textarea:focus {
   text-align: center;
   transform: scale(0.9);
   transition: transform var(--transition-base);
-  @extend .glass-effect;
   border: 1px solid var(--glass-border);
+  pointer-events: auto;
+  z-index: 11001;
 }
 
 .confirm-modal.show .confirm-box {
@@ -926,6 +935,9 @@ input:focus, select:focus, textarea:focus {
   font-weight: 600;
   font-family: 'Tajawal', sans-serif;
   transition: all var(--transition-fast);
+  pointer-events: auto;
+  position: relative;
+  z-index: 5;
 }
 
 /* 20. TAB CONTENT */
@@ -958,12 +970,14 @@ input:focus, select:focus, textarea:focus {
     }
     
     .main {
-        padding: 20px 15px !important;
+        padding: 20px 15px 90px 15px !important;
         margin: 0 !important;
         width: 100% !important;
         box-sizing: border-box !important;
         max-width: 100% !important;
         overflow-x: hidden !important;
+        position: relative;
+        z-index: 1;
     }
     
     /* Ensure no element causes horizontal scrolling */
@@ -971,40 +985,42 @@ input:focus, select:focus, textarea:focus {
         max-width: 100% !important;
         overflow-x: hidden !important;
     }
-    .stat-card {
-        margin: 5px !important; /* يمنع التصاق الكروت ببعضها وبالحواف */
-    }
     
-    /* Fix button clickability */
+    /* FIX: Enhanced button clickability fix */
     button, .btn, .btn-icon, .nav-item, .menu-toggle, 
     .confirm-actions button, .withdraw-card button {
-        z-index: 9999 !important;
-        pointer-events: auto !important;
         position: relative;
+        z-index: 5; /* Ensure buttons are above overlapping transparent layers */
+        pointer-events: auto !important;
     }
     
-    /* Sidebar hidden on mobile */
+    /* Sidebar hidden on mobile - FIX: pointer-events none when hidden */
     .sidebar {
         transform: translateX(100%);
         width: 280px;
+        z-index: 100;
+        pointer-events: none; /* Critical fix: Don't block clicks when hidden */
     }
     
     .sidebar.active {
         transform: translateX(0);
+        pointer-events: auto; /* Re-enable clicks when active */
     }
     
     .menu-toggle {
         display: flex;
+        z-index: 101;
     }
     
     /* Bottom Navigation visible on mobile */
     .bottom-nav {
         display: flex;
+        z-index: 99;
     }
     
     /* Grid adjustments */
     .grid {
-        padding: 0 10px !important; /* يضيف مساحة جانبية للكروت */
+        padding: 0 10px !important;
         gap: 15px;
     }
     
@@ -1074,6 +1090,7 @@ input:focus, select:focus, textarea:focus {
         margin: 1rem !important;
         max-width: 100% !important;
         box-sizing: border-box !important;
+        pointer-events: auto;
     }
     
     /* Input group adjustments */
